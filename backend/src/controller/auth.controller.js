@@ -71,6 +71,14 @@ const loginUser = asyncHandler(async (req, res) => {
     [existingUser.id, refreshToken, expiresAt],
   );
 
+  res.cookie("accessToken", accessToken, {
+    httpOnly: true,
+  });
+
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+  });
+
   return res.status(200).json({
     user: {
       id: existingUser.id,
@@ -78,13 +86,11 @@ const loginUser = asyncHandler(async (req, res) => {
       email: existingUser.email,
       avatar_url: existingUser.avatar_url,
     },
-    accessToken,
-    refreshToken,
   });
 });
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
-  const { refreshToken } = req.body;
+  const refreshToken = req.cookies?.refreshToken;
 
   if (!refreshToken) {
     throw new ApiError(401, "Refresh token is required");
@@ -134,18 +140,21 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
   const newAccessToken = generateAccessToken(user);
 
+  res.cookie("accessToken", newAccessToken, {
+    httpOnly: true,
+  });
+
   return res.status(200).json({
     user: {
       id: user.id,
       username: user.username,
       email: user.email,
     },
-    newAccessToken,
   });
 });
 
 const logoutUser = asyncHandler(async (req, res) => {
-  const { refreshToken } = req.body;
+  const refreshToken = req.cookies?.refreshToken;
 
   if (!refreshToken) {
     throw new ApiError(401, "Refresh token is required");
@@ -158,6 +167,9 @@ const logoutUser = asyncHandler(async (req, res) => {
     `,
     [refreshToken],
   );
+
+  res.clearCookie("accessToken");
+  res.clearCookie("refreshToken");
 
   return res.status(200).json({
     message: "User logged out successfully",
