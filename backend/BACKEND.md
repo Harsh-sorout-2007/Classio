@@ -1,7 +1,8 @@
 Last inspected: 2026-09-29
 
 # Backend Overview
-The backend of Classio serves as a RESTful API powering a college-focused Discord-like platform. It handles user authentication, session management, and room/community creation and management. 
+
+The backend of Classio serves as a RESTful API powering a college-focused Discord-like platform. It handles user authentication, session management, and room/community creation and management.
 
 - **Current architecture**: Monolithic Node.js/Express REST API connecting to a PostgreSQL database.
 - **Current technology stack**: Node.js, Express.js, PostgreSQL (via `pg` module), JSON Web Tokens (JWT), bcrypt for password hashing, and HTTP-only cookies for session management.
@@ -9,6 +10,7 @@ The backend of Classio serves as a RESTful API powering a college-focused Discor
 - **Server startup flow**: `src/index.js` connects to the PostgreSQL database via `pool.query("SELECT 1")`. Upon successful connection, it starts the Express application defined in `src/app.js` on the specified port.
 
 # Backend Folder Structure
+
 The actual implementation resides in the `src/` directory with the following structure:
 
 - `src/`
@@ -34,9 +36,10 @@ The actual implementation resides in the `src/` directory with the following str
   - `app.js`: Express application setup and global middleware configuration.
   - `index.js`: Server entry point and database connection logic.
 
-*(Note: The `validators/` folder is currently empty/not implemented)*
+_(Note: The `validators/` folder is currently empty/not implemented)_
 
 # Request Flow
+
 A standard request flows through the backend as follows:
 
 1. **Client** sends an HTTP request to an endpoint.
@@ -48,9 +51,11 @@ A standard request flows through the backend as follows:
 7. **Response**: The controller returns a JSON response wrapped in `ApiResponse` (or throws an `ApiError` handled by Express).
 
 # Database
+
 - **PostgreSQL Setup**: The backend connects to PostgreSQL using the `pg` Pool configured in `src/db/database.js`. The connection string is provided by the `DATABASE_URL` environment variable. Raw SQL is used for queries. Transactions (BEGIN, COMMIT, ROLLBACK) are utilized for complex operations like room creation.
 
 **Actual Tables (Inferred from queries)**:
+
 - `users`:
   - `id` (Primary Key)
   - `username`
@@ -75,7 +80,8 @@ A standard request flows through the backend as follows:
   - `role` (e.g., "owner")
 
 # Authentication
-Authentication is implemented using a dual-token system (JWT Access Tokens and Refresh Tokens). 
+
+Authentication is implemented using a dual-token system (JWT Access Tokens and Refresh Tokens).
 
 - **Registration** (`POST /api/v1/auth/register`): Hashes the password using `bcrypt` and stores the user in the `users` table.
 - **Login** (`POST /api/v1/auth/login`): Verifies the password using `bcrypt.compare`. Generates an `accessToken` (15m expiry typically) and a `refreshToken` (15d expiry). Stores a session in `user_sessions` and sets both tokens as `httpOnly` cookies.
@@ -84,7 +90,9 @@ Authentication is implemented using a dual-token system (JWT Access Tokens and R
 - **Logout** (`POST /api/v1/auth/logout`): Deletes the session from `user_sessions` and clears the `accessToken` and `refreshToken` cookies.
 
 # Error Handling
+
 Errors are handled using two main utilities:
+
 - `ApiError` (`src/utils/ApiError.js`): A custom Error class containing `statusCode`, `message`, and `errors` array.
 - `asyncHandler` (`src/utils/asyncHandler.js`): A higher-order function that wraps async controllers and passes any caught errors to the `next()` function (Express's default error handler).
 
@@ -93,6 +101,7 @@ Errors are handled using two main utilities:
 ## Auth Endpoints
 
 ### `POST /api/v1/auth/register`
+
 - **Purpose**: Register a new user.
 - **Authentication required**: No
 - **Request body**: `username`, `email`, `password`
@@ -101,6 +110,7 @@ Errors are handled using two main utilities:
 - **Controller**: `registerUser` (`src/controller/auth.controller.js`)
 
 ### `POST /api/v1/auth/login`
+
 - **Purpose**: Authenticate user and set session cookies.
 - **Authentication required**: No
 - **Request body**: `email`, `password`
@@ -109,6 +119,7 @@ Errors are handled using two main utilities:
 - **Controller**: `loginUser` (`src/controller/auth.controller.js`)
 
 ### `POST /api/v1/auth/refresh`
+
 - **Purpose**: Refresh the access token using the refresh token cookie.
 - **Authentication required**: Requires `refreshToken` cookie.
 - **Success response**: 200 OK with new `accessToken` cookie.
@@ -116,6 +127,7 @@ Errors are handled using two main utilities:
 - **Controller**: `refreshAccessToken` (`src/controller/auth.controller.js`)
 
 ### `POST /api/v1/auth/logout`
+
 - **Purpose**: Invalidate refresh token and clear cookies.
 - **Authentication required**: Requires `refreshToken` cookie.
 - **Success response**: 200 OK with cleared cookies.
@@ -125,6 +137,7 @@ Errors are handled using two main utilities:
 ## User Endpoints
 
 ### `GET /api/v1/users`
+
 - **Purpose**: Fetch all users.
 - **Authentication required**: No (currently missing `verifyJWT` middleware in route).
 - **Success response**: 200 OK with array of users.
@@ -133,6 +146,7 @@ Errors are handled using two main utilities:
 ## Room Endpoints
 
 ### `POST /api/v1/room`
+
 - **Purpose**: Create a new room.
 - **Authentication required**: Yes
 - **Request body**: `name`, `description`, `is_private`
@@ -140,12 +154,14 @@ Errors are handled using two main utilities:
 - **Controller**: `createRoom` (`src/controller/room.controller.js`)
 
 ### `GET /api/v1/room`
+
 - **Purpose**: Fetch all rooms the requesting user is a member of.
 - **Authentication required**: Yes
 - **Success response**: 200 OK with array of rooms.
 - **Controller**: `getRooms` (`src/controller/room.controller.js`)
 
 ### `GET /api/v1/room/:roomId`
+
 - **Purpose**: Fetch details of a specific room.
 - **Authentication required**: Yes
 - **Path parameters**: `roomId`
@@ -154,6 +170,7 @@ Errors are handled using two main utilities:
 - **Controller**: `getRoomById` (`src/controller/room.controller.js`)
 
 ### `PATCH /api/v1/room/:roomId`
+
 - **Purpose**: Update room details.
 - **Authentication required**: Yes (Must be owner)
 - **Path parameters**: `roomId`
@@ -163,6 +180,7 @@ Errors are handled using two main utilities:
 - **Controller**: `updateRoom` (`src/controller/room.controller.js`)
 
 ### `DELETE /api/v1/room/:roomId`
+
 - **Purpose**: Delete a room.
 - **Authentication required**: Yes (Must be owner)
 - **Path parameters**: `roomId`
@@ -171,14 +189,16 @@ Errors are handled using two main utilities:
 - **Controller**: `deleteRoom` (`src/controller/room.controller.js`)
 
 # Room Management
-- **Room Creation**: A user creates a room and is designated as the `owner_id`. 
+
+- **Room Creation**: A user creates a room and is designated as the `owner_id`.
 - **Automatic Owner Membership**: Creating a room opens a SQL transaction that inserts the room into `rooms` and automatically inserts the creator into `room_members` with the role `"owner"`.
 - **Room Listing**: Users can fetch rooms they are joined in via a `JOIN` between `rooms` and `room_members`.
-- **Authorization Rules**: 
+- **Authorization Rules**:
   - Viewing a room requires being a member in `room_members`.
   - Updating or deleting a room strictly requires the `req.user._id` to match the `owner_id` on the `rooms` table.
 
 # Security
+
 - **Password hashing**: Handled securely via `bcrypt` (10 rounds).
 - **Parameterized SQL**: All database queries use `pg` parameterization (`$1`, `$2`, etc.) to prevent SQL injection.
 - **JWT & Cookies**: Secure access and refresh tokens stored as `httpOnly` cookies, mitigating XSS risks for token theft.
@@ -186,6 +206,7 @@ Errors are handled using two main utilities:
 - **Environment variables**: Sensitive data like DB URLs and token secrets are stored in `.env`.
 
 ## Security TODO
+
 - Implement global error handling middleware in Express to catch unhandled errors from `asyncHandler`.
 - Apply Rate Limiting (the `rateLimit.middleware.js` exists but is not used in `app.js`).
 - Validate request inputs (e.g., using `express-validator` which is in `package.json` but not used).
@@ -194,6 +215,7 @@ Errors are handled using two main utilities:
 # Backend Current Status
 
 **Implemented**:
+
 - Database connection via `pg`
 - User Authentication (Register, Login, Logout, Refresh)
 - JWT and cookie-based sessions
@@ -201,9 +223,11 @@ Errors are handled using two main utilities:
 - Room ownership and basic membership checking
 
 **In Progress**:
+
 - General user data fetching (currently unprotected)
 
 **Not Implemented**:
+
 - Text Channels within rooms
 - Messages and replies
 - File/Image sharing
@@ -211,6 +235,7 @@ Errors are handled using two main utilities:
 - Search
 
 **Planned**:
+
 - Real-time messaging (Socket.IO)
 - WebRTC for Voice/Video communication
 - Screen sharing
