@@ -1,4 +1,3 @@
-Last inspected: 2026-09-29
 
 # Classio
 Classio is a Discord-like platform for college students designed to provide spaces for communication, communities, and collaboration. It allows students to create and join rooms to communicate.
