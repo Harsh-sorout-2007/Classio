@@ -28,7 +28,15 @@ const registerUser = asyncHandler(async (req, res) => {
     [username, email, hashedPassword],
   );
 
-  return res.status(201).json(user.rows[0]);
+  return res.status(201).json(
+    new ApiResponse(
+      201,
+      {
+        user: user.rows[0],
+      },
+      "User registered successfully",
+    ),
+  );
 });
 
 const loginUser = asyncHandler(async (req, res) => {
@@ -71,22 +79,28 @@ const loginUser = asyncHandler(async (req, res) => {
     [existingUser.id, refreshToken, expiresAt],
   );
 
-  res.cookie("accessToken", accessToken, {
-    httpOnly: true,
-  });
-
-  res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-  });
-
-  return res.status(200).json({
-    user: {
-      id: existingUser.id,
-      username: existingUser.username,
-      email: existingUser.email,
-      avatar_url: existingUser.avatar_url,
-    },
-  });
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, {
+      httpOnly: true,
+    })
+    .cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+    })
+    .json(
+      new ApiResponse(
+        200,
+        {
+          user: {
+            id: existingUser.id,
+            username: existingUser.username,
+            email: existingUser.email,
+            avatar_url: existingUser.avatar_url,
+          },
+        },
+        "User logged in successfully",
+      ),
+    );
 });
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
@@ -140,17 +154,24 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
   const newAccessToken = generateAccessToken(user);
 
-  res.cookie("accessToken", newAccessToken, {
-    httpOnly: true,
-  });
-
-  return res.status(200).json({
-    user: {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-    },
-  });
+  return res
+    .status(200)
+    .cookie("accessToken", newAccessToken, {
+      httpOnly: true,
+    })
+    .json(
+      new ApiResponse(
+        200,
+        {
+          user: {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+          },
+        },
+        "Access token refreshed successfully",
+      ),
+    );
 });
 
 const logoutUser = asyncHandler(async (req, res) => {
@@ -168,12 +189,11 @@ const logoutUser = asyncHandler(async (req, res) => {
     [refreshToken],
   );
 
-  res.clearCookie("accessToken");
-  res.clearCookie("refreshToken");
-
-  return res.status(200).json({
-    message: "User logged out successfully",
-  });
+  return res
+    .status(200)
+    .clearCookie("accessToken")
+    .clearCookie("refreshToken")
+    .json(new ApiResponse(200, null, "User logged out successfully"));
 });
 
 export { registerUser, loginUser, refreshAccessToken, logoutUser };
