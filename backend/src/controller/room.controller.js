@@ -664,6 +664,264 @@ const leaveRoom = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, null, "Room left successfully"));
 });
+
+const sendMessage = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const { content } = req.body;
+  const { roomId } = req.params;
+
+  if (!content || content.trim() === "") {
+    throw new ApiError(400, "Message content is required");
+  }
+
+  const existingRoom = await pool.query(
+    `
+    SELECT *
+    FROM rooms 
+    WHERE id=$1
+    `,
+    [roomId],
+  );
+
+  if (existingRoom.rows.length === 0) {
+    throw new ApiError(404, "Room not found");
+  }
+
+  const isMember = await pool.query(
+    `
+      SELECT * 
+      FROM room_members
+      WHERE room_id=$1
+        AND user_id=$2
+    `,
+    [roomId, userId],
+  );
+
+  if (isMember.rows.length === 0) {
+    throw new ApiError(403, "You are not a member of this room");
+  }
+
+  const message = await pool.query(
+    `
+    INSERT INTO messages(room_id,user_id,content)
+    VALUES($1,$2,$3)
+    RETURNING *
+    `,
+    [roomId, userId, content],
+  );
+
+  return res.status(201).json(
+    new ApiResponse(
+      201,
+      {
+        message: {
+          id: message.rows[0].id,
+          room_id: message.rows[0].room_id,
+          user_id: message.rows[0].user_id,
+          content: message.rows[0].content,
+          created_at: message.rows[0].created_at,
+        },
+      },
+      "message sent successfully",
+    ),
+  );
+});
+
+const updateMessage = asyncHandler(async (req, res) => {
+  const { content } = req.body;
+  const { roomId, messageId } = req.params;
+  const userId = req.user._id;
+
+  if (!content || content.trim() === "") {
+    throw new ApiError(400, "Message content is required");
+  }
+
+  const existingRoom = await pool.query(
+    `
+    SELECT *
+    FROM rooms 
+    WHERE id=$1
+    `,
+    [roomId],
+  );
+
+  if (existingRoom.rows.length === 0) {
+    throw new ApiError(404, "Room not found");
+  }
+  const existingMessage = await pool.query(
+    `
+    SELECT *
+    FROM messages 
+    WHERE id=$1
+    `,
+    [messageId],
+  );
+
+  if (existingMessage.rows.length === 0) {
+    throw new ApiError(404, "Message not found");
+  }
+
+  const isMember = await pool.query(
+    `
+      SELECT * 
+      FROM room_members
+      WHERE room_id=$1
+        AND user_id=$2
+    `,
+    [roomId, userId],
+  );
+
+  if (isMember.rows.length === 0) {
+    throw new ApiError(403, "You are not a member of this room");
+  }
+
+  const message = await pool.query(
+    `
+    UPDATE messages
+    SET content=$1,
+      updated_at=CURRENT_TIMESTAMP
+    WHERE id=$2
+      AND user_id=$3
+    RETURNING *
+    `,
+    [content, messageId, userId],
+  );
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        message: {
+          id: message.rows[0].id,
+          room_id: message.rows[0].room_id,
+          user_id: message.rows[0].user_id,
+          content: message.rows[0].content,
+          updated_at: message.rows[0].updated_at,
+        },
+      },
+      "message updated successfully",
+    ),
+  );
+});
+
+const getMessages = asyncHandler(async (req, res) => {
+  const { roomId } = req.params;
+  const userId = req.user._id;
+
+  const existingRoom = await pool.query(
+    `
+    SELECT *
+    FROM rooms 
+    WHERE id=$1
+    `,
+    [roomId],
+  );
+
+  if (existingRoom.rows.length === 0) {
+    throw new ApiError(404, "Room not found");
+  }
+
+  const isMember = await pool.query(
+    `
+      SELECT * 
+      FROM room_members
+      WHERE room_id=$1
+        AND user_id=$2
+    `,
+    [roomId, userId],
+  );
+
+  if (isMember.rows.length === 0) {
+    throw new ApiError(403, "You are not a member of this room");
+  }
+
+  const messages = await pool.query(
+    `
+    SELECT id,user_id,content,created_at
+    FROM messages
+    WHERE room_id=$1
+    ORDER BY created_at ASC
+    `,
+    [roomId],
+  );
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        messages: messages.rows,
+      },
+      "Messages fetched successfully",
+    ),
+  );
+});
+
+const deleteMessage = asyncHandler(async (req, res) => {
+  const { roomId, messageId } = req.params;
+  const userId = req.user._id;
+
+  const existingRoom = await pool.query(
+    `
+    SELECT *
+    FROM rooms 
+    WHERE id=$1
+    `,
+    [roomId],
+  );
+
+  if (existingRoom.rows.length === 0) {
+    throw new ApiError(404, "Room not found");
+  }
+  const existingMessage = await pool.query(
+    `
+    SELECT *
+    FROM messages 
+    WHERE id=$1
+    `,
+    [messageId],
+  );
+
+  if (existingMessage.rows.length === 0) {
+    throw new ApiError(404, "Message not found");
+  }
+
+  const isMember = await pool.query(
+    `
+      SELECT * 
+      FROM room_members
+      WHERE room_id=$1
+        AND user_id=$2
+    `,
+    [roomId, userId],
+  );
+
+  if (isMember.rows.length === 0) {
+    throw new ApiError(403, "You are not a member of this room");
+  }
+
+  const message = await pool.query(
+    `
+    DELETE 
+    FROM messages
+    WHERE id=$1
+      AND user_id=$2
+      AND room_id=$3
+    RETURNING *
+    `,
+    [messageId, userId, roomId],
+  );
+
+  if (message.rows.length === 0) {
+    throw new ApiError(
+      403,
+      "You do not have permission to delete this message.",
+    );
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, null, "Message deleted successfully"));
+});
 export {
   createRoom,
   getRooms,
@@ -676,4 +934,8 @@ export {
   approveJoinRequest,
   rejectJoinRequest,
   leaveRoom,
+  sendMessage,
+  updateMessage,
+  getMessages,
+  deleteMessage,
 };
