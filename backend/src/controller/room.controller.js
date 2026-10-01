@@ -88,11 +88,15 @@ const getRooms = asyncHandler(async (req, res) => {
 
   const rooms = await pool.query(
     `
-    SELECT rooms.*
+    SELECT
+    rooms.*,
+    users.username AS owner_username
     FROM rooms
+    JOIN users
+      ON users.id = rooms.owner_id
     JOIN room_members
-        ON room_members.room_id=rooms.id
-    WHERE room_members.user_id=$1
+      ON room_members.room_id = rooms.id
+    WHERE room_members.user_id = $1;
     `,
     [requestingUser],
   );
@@ -104,6 +108,38 @@ const getRooms = asyncHandler(async (req, res) => {
         rooms: rooms.rows,
       },
       "Rooms fetched successfully",
+    ),
+  );
+});
+
+const discoverRooms = asyncHandler(async (req, res) => {
+  const requestingUser = req.user._id;
+
+  const rooms = await pool.query(
+    `
+    SELECT
+    rooms.*,
+    users.username AS owner_username
+    FROM rooms
+    JOIN users
+      ON users.id = rooms.owner_id
+    WHERE rooms.id NOT IN (
+      SELECT room_id
+      FROM room_members
+      WHERE user_id = $1
+    )
+    ORDER BY rooms.created_at DESC;
+    `,
+    [requestingUser],
+  );
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        rooms: rooms.rows,
+      },
+      "Rooms discovered successfully",
     ),
   );
 });
@@ -753,8 +789,9 @@ const updateMessage = asyncHandler(async (req, res) => {
     SELECT *
     FROM messages 
     WHERE id=$1
+      AND room_id=$2
     `,
-    [messageId],
+    [messageId, roomId],
   );
 
   if (existingMessage.rows.length === 0) {
@@ -786,6 +823,12 @@ const updateMessage = asyncHandler(async (req, res) => {
     `,
     [content, messageId, userId],
   );
+  if (message.rows.length === 0) {
+    throw new ApiError(
+      403,
+      "You do not have permission to update this message",
+    );
+  }
 
   return res.status(200).json(
     new ApiResponse(
@@ -837,10 +880,12 @@ const getMessages = asyncHandler(async (req, res) => {
 
   const messages = await pool.query(
     `
-    SELECT id,user_id,content,created_at
+    SELECT messages.id,messages.user_id,users.username,messages.content,messages.created_at
     FROM messages
-    WHERE room_id=$1
-    ORDER BY created_at ASC
+    JOIN users
+      ON users.id=messages.user_id
+    WHERE messages.room_id=$1
+    ORDER BY messages.created_at ASC
     `,
     [roomId],
   );
@@ -877,8 +922,9 @@ const deleteMessage = asyncHandler(async (req, res) => {
     SELECT *
     FROM messages 
     WHERE id=$1
+      AND room_id=$2
     `,
-    [messageId],
+    [messageId, roomId],
   );
 
   if (existingMessage.rows.length === 0) {
@@ -925,6 +971,7 @@ const deleteMessage = asyncHandler(async (req, res) => {
 export {
   createRoom,
   getRooms,
+  discoverRooms,
   getRoomById,
   updateRoom,
   deleteRoom,

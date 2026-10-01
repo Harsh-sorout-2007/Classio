@@ -5,6 +5,7 @@ import {
   createRoom,
   deleteMessage,
   deleteRoom,
+  discoverRooms,
   getJoinRequests,
   getMembers,
   getMessages,
@@ -22,6 +23,7 @@ const router = Router();
 
 //create get members
 router.route("/").post(verifyJWT, createRoom).get(verifyJWT, getRooms);
+router.route("/discover").get(verifyJWT, discoverRooms);
 router.route("/:roomId/members").get(verifyJWT, getMembers);
 
 //join leave join-requests

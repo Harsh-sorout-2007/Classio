@@ -1,12 +1,15 @@
 Last inspected: 2026-09-29
 
 # Frontend Overview
+
 The frontend for Classio is intended to be the client application that users interact with. However, the frontend is currently **not implemented**. The `frontend/` directory is completely empty.
 
-*(Note: The following sections describe what is planned based on the project's long-term vision, as there is currently no code to document.)*
+_(Note: The following sections describe what is planned based on the project's long-term vision, as there is currently no code to document.)_
 
 # Technology Stack
-*Planned:*
+
+_Planned:_
+
 - React
 - Vite
 - JavaScript
@@ -14,45 +17,58 @@ The frontend for Classio is intended to be the client application that users int
 - Axios
 
 # Folder Structure
-*Not Implemented*
+
+_Not Implemented_
 
 # Entry Point
-*Not Implemented*
+
+_Not Implemented_
 
 # Routing
-*Not Implemented*
+
+_Not Implemented_
 
 # Components
-*Not Implemented*
+
+_Not Implemented_
 
 # Pages
-*Not Implemented*
+
+_Not Implemented_
 
 # State Management
-*Not Implemented*
+
+_Not Implemented_
 
 # API Communication
-*Not Implemented* (Axios setup planned)
+
+_Not Implemented_ (Axios setup planned)
 
 # Authentication UI
-*Not Implemented* (Register, Login, Logout, and Protected Routes planned)
+
+_Not Implemented_ (Register, Login, Logout, and Protected Routes planned)
 
 # Room UI
-*Not Implemented* (Room creation, list, details, and member UI planned)
+
+_Not Implemented_ (Room creation, list, details, and member UI planned)
 
 # Frontend Architecture
-*Planned:*
+
+_Planned:_
 Component → Axios API call → Backend Route → Controller → PostgreSQL Database → Response → React UI update.
 
 # Current Frontend Status
 
 **Implemented**:
+
 - None
 
 **In Progress**:
+
 - None
 
 **Not Implemented**:
+
 - React/Vite initialization
 - Authentication UI (Login/Register pages)
 - Room UI (Dashboard, Room details)
@@ -60,6 +76,7 @@ Component → Axios API call → Backend Route → Controller → PostgreSQL Dat
 - API integration
 
 **Planned**:
+
 - Complete frontend client application
 - Real-time Socket.IO integration
 - Voice/Video/WebRTC components
