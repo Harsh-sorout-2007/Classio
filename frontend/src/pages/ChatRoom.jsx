@@ -37,6 +37,30 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
   const messagesEndRef = useRef(null);
   const typingTimer = useRef(null);
 
+  const getMessages = async () => {
+    setIsLoadingMessages(true);
+
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/v1/room/${roomId}/messages`,
+        {
+          method: "GET",
+          credentials: "include",
+        },
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessages(data.data.messages);
+      }
+    } catch (error) {
+      console.error("Error getting messages:", error);
+    } finally {
+      setIsLoadingMessages(false);
+    }
+  };
+
   const getMembers = async () => {
     setIsLoadingMembers(true);
 
@@ -62,30 +86,6 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
   };
 
   useEffect(() => {
-    const getMessages = async () => {
-      setIsLoadingMessages(true);
-
-      try {
-        const response = await fetch(
-          `http://localhost:5000/api/v1/room/${roomId}/messages`,
-          {
-            method: "GET",
-            credentials: "include",
-          },
-        );
-
-        const data = await response.json();
-
-        if (response.ok) {
-          setMessages(data.data.messages);
-        }
-      } catch (error) {
-        console.error("Error getting messages:", error);
-      } finally {
-        setIsLoadingMessages(false);
-      }
-    };
-
     const getJoinRequests = async () => {
       try {
         const response = await fetch(
@@ -149,7 +149,7 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
     }
 
     socket.on("joined-room", () => {
-      // Room joined
+      getMessages();
     });
 
     socket.on("join-room-error", (message) => {
@@ -157,7 +157,17 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
     });
 
     socket.on("new-message", (message) => {
-      setMessages((previousMessages) => [...previousMessages, message]);
+      setMessages((previousMessages) => {
+        const alreadyExists = previousMessages.some(
+          (existingMessage) => existingMessage.id === message.id,
+        );
+
+        if (alreadyExists) {
+          return previousMessages;
+        }
+
+        return [...previousMessages, message];
+      });
     });
 
     socket.on("message-error", (message) => {
@@ -166,6 +176,10 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
 
     socket.on("connect_error", (error) => {
       console.error("Socket connection error:", error.message);
+    });
+
+    socket.on("disconnect", () => {
+      setTypingUsers(new Map());
     });
 
     socket.on("user-typing", ({ userId, username }) => {
