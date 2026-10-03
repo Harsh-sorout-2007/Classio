@@ -152,23 +152,23 @@ function RoomList({ onRoomSelect, onLogout }) {
         </div>
 
         <div className="shell-nav">
-          <h4 style={{ padding: "12px 12px 4px", fontSize: 11 }}>Workspace</h4>
+          <h4 style={{ padding: "16px 16px 8px" }}>Workspace</h4>
           <button
-            className={`nav-link ${activeTab === "my-rooms" ? "active" : ""}`}
+            className={`nav-link no-prefix ${activeTab === "my-rooms" ? "active" : ""}`}
             onClick={() => setActiveTab("my-rooms")}
           >
             My Rooms
           </button>
           <button
-            className={`nav-link ${activeTab === "discover" ? "active" : ""}`}
+            className={`nav-link no-prefix ${activeTab === "discover" ? "active" : ""}`}
             onClick={() => setActiveTab("discover")}
           >
             Discover Rooms
           </button>
 
-          <h4 style={{ padding: "24px 12px 4px", fontSize: 11 }}>Management</h4>
+          <h4 style={{ padding: "32px 16px 8px" }}>Management</h4>
           <button
-            className={`nav-link ${activeTab === "create" ? "active" : ""}`}
+            className={`nav-link no-prefix ${activeTab === "create" ? "active" : ""}`}
             onClick={() => setActiveTab("create")}
           >
             Create Room
@@ -176,12 +176,12 @@ function RoomList({ onRoomSelect, onLogout }) {
 
           <div style={{ marginTop: "auto", paddingTop: 24 }}>
             <button
-              className="nav-link danger"
+              className="nav-link no-prefix danger"
               onClick={onLogout}
               style={{
                 width: "100%",
                 textAlign: "left",
-                color: "var(--danger)",
+                color: "var(--color-danger)",
               }}
             >
               Logout
@@ -203,23 +203,35 @@ function RoomList({ onRoomSelect, onLogout }) {
           {activeTab === "create" && (
             <div
               className="room-card"
-              style={{ maxWidth: 600, margin: "0 auto" }}
+              style={{
+                maxWidth: 800,
+                margin: "0",
+                background: "var(--color-navy-surface)",
+              }}
             >
-              <h3 style={{ marginBottom: 4 }}>Create a New Room</h3>
-              <p className="text-muted" style={{ marginBottom: 24 }}>
-                Set up a space for your class, team, or project.
-              </p>
+              <h3
+                style={{
+                  marginBottom: 40,
+                  fontSize: 48,
+                  textTransform: "uppercase",
+                }}
+              >
+                CREATE
+                <br />
+                ROOM
+              </h3>
 
-              <div className="form-group">
+              <div className="form-group" style={{ marginBottom: 32 }}>
                 <label>Room Name</label>
                 <input
                   type="text"
                   placeholder="e.g. Design Team Sync"
                   value={roomName}
                   onChange={(e) => setRoomName(e.target.value)}
+                  style={{ fontSize: 24, padding: "20px 16px" }}
                 />
               </div>
-              <div className="form-group">
+              <div className="form-group" style={{ marginBottom: 32 }}>
                 <label>Description</label>
                 <textarea
                   placeholder="What is this room about?"
@@ -234,24 +246,49 @@ function RoomList({ onRoomSelect, onLogout }) {
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  marginTop: 32,
+                  marginTop: 48,
                 }}
               >
-                <label className="checkbox-label">
+                <label
+                  className="checkbox-label"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    cursor: "pointer",
+                    fontSize: 16,
+                  }}
+                >
                   <input
                     type="checkbox"
                     checked={isPrivate}
                     onChange={(e) => setIsPrivate(e.target.checked)}
+                    style={{ width: 24, height: 24, margin: 0 }}
                   />
                   Make this room private
                 </label>
                 <button
+                  className="primary"
                   onClick={() => {
                     createRoom();
                     setActiveTab("my-rooms");
                   }}
                 >
-                  Create Room
+                  CREATE ROOM
+                  <span className="btn-arrow">
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M5 12h14M12 5l7 7-7 7" />
+                    </svg>
+                  </span>
                 </button>
               </div>
             </div>
@@ -269,14 +306,40 @@ function RoomList({ onRoomSelect, onLogout }) {
                 ))}
               </div>
             ) : rooms.length === 0 ? (
-              <div className="empty-state">
-                <div className="empty-icon">🏠</div>
-                <h3>Your workspace is empty</h3>
-                <p style={{ marginBottom: 24 }}>
-                  Join a community or create a new room to get started.
+              <div
+                className="empty-state"
+                style={{ alignItems: "flex-start", textAlign: "left" }}
+              >
+                <h3 style={{ color: "var(--color-brand)" }}>
+                  YOUR
+                  <br />
+                  WORKSPACE
+                  <br />
+                  IS EMPTY.
+                </h3>
+                <p style={{ marginBottom: 48, fontSize: 24, maxWidth: 400 }}>
+                  Join a community or create a new room to start building your
+                  space.
                 </p>
-                <button onClick={() => setActiveTab("discover")}>
-                  Discover Rooms
+                <button
+                  className="primary"
+                  onClick={() => setActiveTab("discover")}
+                >
+                  DISCOVER ROOMS
+                  <span className="btn-arrow">
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M5 12h14M12 5l7 7-7 7" />
+                    </svg>
+                  </span>
                 </button>
               </div>
             ) : (
@@ -317,7 +380,7 @@ function RoomList({ onRoomSelect, onLogout }) {
                           Owner:{" "}
                           <strong
                             style={{
-                              color: "var(--text-main)",
+                              color: "var(--color-text-primary)",
                               fontWeight: 500,
                             }}
                           >
@@ -325,7 +388,10 @@ function RoomList({ onRoomSelect, onLogout }) {
                           </strong>
                         </span>
                       </div>
-                      <button onClick={() => onRoomSelect(room.id)}>
+                      <button
+                        className="secondary"
+                        onClick={() => onRoomSelect(room.id)}
+                      >
                         Open Room
                       </button>
                     </div>
@@ -389,7 +455,7 @@ function RoomList({ onRoomSelect, onLogout }) {
                           Owner:{" "}
                           <strong
                             style={{
-                              color: "var(--text-main)",
+                              color: "var(--color-text-primary)",
                               fontWeight: 500,
                             }}
                           >

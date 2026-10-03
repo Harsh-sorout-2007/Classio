@@ -103,9 +103,11 @@ function App() {
           height: "100vh",
           alignItems: "center",
           justifyContent: "center",
-          background: "var(--bg-app)",
-          color: "var(--text-normal)",
-          fontSize: "1.2rem",
+          background: "var(--color-background)",
+          color: "var(--color-text-primary)",
+          fontSize: "1.5rem",
+          fontFamily: "var(--font-display)",
+          fontWeight: 700,
         }}
       >
         Loading Classio...

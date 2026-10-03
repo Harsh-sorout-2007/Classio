@@ -1,0 +1,38 @@
+/* Typing Indicator */
+.typing-indicator {
+  padding: 0 var(--space-6) var(--space-2);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 20px;
+}
+.typing-dots {
+  display: flex;
+  gap: 2px;
+}
+.typing-dots span {
+  font-size: 8px;
+  color: var(--color-brand);
+  animation: typing-bounce 1.4s infinite ease-in-out both;
+}
+.typing-dots span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+.typing-dots span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+@keyframes typing-bounce {
+  0%,
+  80%,
+  100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}
+.typing-text {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}

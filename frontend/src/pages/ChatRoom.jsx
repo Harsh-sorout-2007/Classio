@@ -9,6 +9,10 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
   const [isLoadingMessages, setIsLoadingMessages] = useState(true);
   const [isLoadingMembers, setIsLoadingMembers] = useState(true);
   const [typingUsers, setTypingUsers] = useState(new Map());
+  const [deliveredMessages, setDeliveredMessages] = useState(new Set());
+  const [readMessages, setReadMessages] = useState(new Set());
+  const [userRooms, setUserRooms] = useState([]);
+  const [isLoadingRooms, setIsLoadingRooms] = useState(true);
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [toasts, setToasts] = useState([]);
@@ -53,12 +57,66 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
 
       if (response.ok) {
         setMessages(data.data.messages);
+        markMessagesAsRead(data.data.messages);
       }
     } catch (error) {
       console.error("Error getting messages:", error);
     } finally {
       setIsLoadingMessages(false);
     }
+  };
+
+  const syncReceipts = () => {
+    socket.emit("sync-room-receipts", roomId, (response) => {
+      if (!response.success) {
+        console.error("Failed to sync receipts:", response.error);
+
+        return;
+      }
+
+      const delivered = new Set();
+      const read = new Set();
+
+      response.receipts.forEach((receipt) => {
+        /*
+          Group message is delivered only when
+          EVERY recipient has received it.
+        */
+
+        if (
+          receipt.total_recipients > 0 &&
+          receipt.delivered_count === receipt.total_recipients
+        ) {
+          delivered.add(receipt.message_id);
+        }
+
+        /*
+          Group message is read only when
+          EVERY recipient has read it.
+        */
+
+        if (
+          receipt.total_recipients > 0 &&
+          receipt.read_count === receipt.total_recipients
+        ) {
+          read.add(receipt.message_id);
+        }
+      });
+
+      setDeliveredMessages(delivered);
+      setReadMessages(read);
+    });
+  };
+
+  const markMessagesAsRead = (messages) => {
+    messages.forEach((msg) => {
+      if (msg.user_id !== currentUser.id) {
+        console.log("Marking message as read:", msg.id);
+        socket.emit("message-read", {
+          messageId: msg.id,
+        });
+      }
+    });
   };
 
   const getMembers = async () => {
@@ -84,6 +142,26 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
       setIsLoadingMembers(false);
     }
   };
+
+  useEffect(() => {
+    const fetchRooms = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/api/v1/room/", {
+          method: "GET",
+          credentials: "include",
+        });
+        const data = await response.json();
+        if (response.ok) {
+          setUserRooms(data.data.rooms);
+        }
+      } catch (error) {
+        console.error("Error getting rooms:", error);
+      } finally {
+        setIsLoadingRooms(false);
+      }
+    };
+    fetchRooms();
+  }, []);
 
   useEffect(() => {
     const getJoinRequests = async () => {
@@ -150,6 +228,10 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
 
     socket.on("joined-room", () => {
       getMessages();
+
+      socket.emit("mark-room-read", roomId, () => {
+        syncReceipts();
+      });
     });
 
     socket.on("join-room-error", (message) => {
@@ -167,6 +249,59 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
         }
 
         return [...previousMessages, message];
+      });
+
+      /*
+    If this message was sent by someone else,
+    we are currently inside the room, so mark it
+    as read immediately.
+  */
+
+      if (message.user_id !== currentUser.id) {
+        socket.emit("message-read", {
+          messageId: message.id,
+        });
+      }
+    });
+
+    socket.on(
+      "receipt-update",
+      ({ messageId, totalRecipients, deliveredCount, readCount }) => {
+        /*
+      Delivered to everyone
+    */
+
+        if (totalRecipients > 0 && deliveredCount === totalRecipients) {
+          setDeliveredMessages((previous) => {
+            const updated = new Set(previous);
+
+            updated.add(messageId);
+
+            return updated;
+          });
+        }
+
+        /*
+      Read by everyone
+    */
+
+        if (totalRecipients > 0 && readCount === totalRecipients) {
+          setReadMessages((previous) => {
+            const updated = new Set(previous);
+
+            updated.add(messageId);
+
+            return updated;
+          });
+        }
+      },
+    );
+
+    socket.on("message-delivered", ({ messageId }) => {
+      setDeliveredMessages((previous) => {
+        const updated = new Set(previous);
+        updated.add(messageId);
+        return updated;
       });
     });
 
@@ -205,6 +340,7 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
       socket.off("joined-room");
       socket.off("join-room-error");
       socket.off("new-message");
+      socket.off("receipt-update");
       socket.off("message-error");
       socket.off("connect_error");
       socket.off("user-typing");
@@ -414,16 +550,122 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
       return;
     }
 
-    socket.emit("send-message", {
-      roomId: roomId,
-      content: message,
-    });
+    const content = message.trim();
+
+    socket.emit(
+      "send-message",
+      {
+        roomId,
+        content,
+      },
+      (response) => {
+        if (!response.success) {
+          console.log("Message failed:", response.error);
+
+          return;
+        }
+
+        /*
+        The server already saved the message.
+
+        Add it immediately to OUR UI.
+      */
+
+        setMessages((previousMessages) => {
+          const alreadyExists = previousMessages.some(
+            (existingMessage) => existingMessage.id === response.message.id,
+          );
+
+          if (alreadyExists) {
+            return previousMessages;
+          }
+
+          return [...previousMessages, response.message];
+        });
+      },
+    );
 
     setMessage("");
   };
 
   return (
     <div className="chat-workspace">
+      {/* 1. NAV (Rooms & Actions) */}
+      <div className="shell-sidebar">
+        <div
+          className="shell-header"
+          style={{ borderBottom: "1px solid var(--color-border-subtle)" }}
+        >
+          <div className="brand-logo" style={{ fontSize: 20 }}>
+            <span style={{ fontWeight: 800 }}>Classio</span>
+          </div>
+        </div>
+        <div className="shell-nav">
+          <button
+            className="nav-link no-prefix"
+            onClick={onBack}
+            title="Back to Dashboard"
+            style={{ marginBottom: 16 }}
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              style={{ marginRight: 8, verticalAlign: "middle" }}
+            >
+              <path d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
+            Dashboard
+          </button>
+
+          <h4 style={{ padding: "8px 12px", marginTop: 8 }}>My Rooms</h4>
+          {isLoadingRooms ? (
+            <div
+              style={{
+                padding: "0 12px",
+                color: "var(--color-text-muted)",
+                fontSize: 13,
+              }}
+            >
+              Loading...
+            </div>
+          ) : (
+            userRooms.map((room) => (
+              <button
+                key={room.id}
+                className={`nav-link ${room.id === roomId ? "active" : ""}`}
+                onClick={() => {
+                  if (room.id !== roomId) {
+                    if (socket) socket.disconnect();
+                    onBack();
+                  }
+                }}
+              >
+                {room.name}
+              </button>
+            ))
+          )}
+        </div>
+        <div
+          style={{
+            padding: 16,
+            marginTop: "auto",
+            borderTop: "1px solid var(--color-border-subtle)",
+          }}
+        >
+          <button
+            className="danger ghost"
+            onClick={onLogout}
+            style={{ width: "100%", justifyContent: "flex-start" }}
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+
       <div className="chat-core">
         <div className="chat-header">
           <div
@@ -433,21 +675,6 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
               gap: 16,
             }}
           >
-            <button className="icon-btn ghost" onClick={onBack} title="Back">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M19 12H5M12 19l-7-7 7-7" />
-              </svg>
-            </button>
-
             <div>
               <div
                 style={{
@@ -458,7 +685,7 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
                   fontWeight: 600,
                 }}
               >
-                <span style={{ color: "var(--text-muted)" }}>#</span>
+                <span style={{ color: "var(--color-text-muted)" }}>#</span>
 
                 {roomDetails ? roomDetails.name : "Loading..."}
 
@@ -479,7 +706,7 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
                 <div
                   style={{
                     fontSize: 13,
-                    color: "var(--text-secondary)",
+                    color: "var(--color-text-secondary)",
                   }}
                 >
                   {roomDetails.description}
@@ -490,12 +717,12 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
 
           <div style={{ position: "relative" }}>
             {!isOwner ? (
-              <button className="secondary danger" onClick={leaveRoom}>
+              <button className="danger" onClick={leaveRoom}>
                 Leave Room
               </button>
             ) : (
               <button
-                className="icon-btn secondary"
+                className="icon-btn"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
               >
                 <svg
@@ -556,8 +783,8 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
           <div
             style={{
               padding: "16px 24px",
-              background: "var(--bg-surface)",
-              borderBottom: "1px solid var(--border-dim)",
+              background: "var(--color-surface)",
+              borderBottom: "1px solid var(--color-border-subtle)",
             }}
           >
             <h4 style={{ marginBottom: 12 }}>Edit Room Settings</h4>
@@ -575,7 +802,9 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
                 style={{ flex: 2 }}
               />
 
-              <button onClick={submitEditRoom}>Save Changes</button>
+              <button className="primary" onClick={submitEditRoom}>
+                Save Changes
+              </button>
 
               <button className="ghost" onClick={() => setIsEditingRoom(false)}>
                 Cancel
@@ -633,12 +862,36 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
               ))}
             </div>
           ) : messages.length === 0 ? (
-            <div className="empty-state" style={{ margin: "auto" }}>
-              <div className="empty-icon">💬</div>
-
-              <h3>No messages yet</h3>
-
-              <p>Be the first to start the conversation.</p>
+            <div
+              className="empty-state"
+              style={{
+                margin: "auto",
+                textAlign: "left",
+                alignItems: "flex-start",
+                paddingLeft: 64,
+              }}
+            >
+              <h3 style={{ color: "var(--color-brand)" }}>
+                START THE
+                <br />
+                CONVERSATION.
+              </h3>
+              <p style={{ fontSize: 24, marginBottom: 48, maxWidth: 400 }}>
+                Nothing here yet. Be the first to say hello.
+              </p>
+              <div
+                style={{
+                  position: "absolute",
+                  right: -50,
+                  bottom: -100,
+                  fontSize: "16vw",
+                  fontWeight: 800,
+                  color: "rgba(255,255,255,0.02)",
+                  zIndex: -1,
+                }}
+              >
+                CLASSIO
+              </div>
             </div>
           ) : (
             messages.map((msg, index) => {
@@ -659,20 +912,32 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
                     !isGrouped ? "first" : ""
                   } ${isMine ? "is-mine" : ""}`}
                 >
-                  {!isMine && (
-                    <div className="msg-gutter">
-                      {!isGrouped && (
-                        <div className="msg-avatar">
-                          {msg.username.charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  <div className="msg-gutter">
+                    {!isGrouped && (
+                      <div className="msg-avatar">
+                        {msg.username.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    {isGrouped && (
+                      <div className="msg-gutter-timestamp">
+                        {new Date(msg.created_at).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </div>
+                    )}
+                  </div>
 
                   <div className="msg-body">
-                    {!isMine && !isGrouped && (
+                    {!isGrouped && (
                       <div className="msg-meta">
                         <span className="msg-author">{msg.username}</span>
+                        <span className="msg-time-inline">
+                          {new Date(msg.created_at).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
                       </div>
                     )}
 
@@ -694,6 +959,7 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
                         />
 
                         <button
+                          className="primary"
                           style={{ padding: "6px 12px" }}
                           onClick={() => submitEditMessage(msg.id)}
                         >
@@ -710,14 +976,15 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
                       </div>
                     ) : (
                       <div className="msg-content">
-                        {msg.content}
+                        <span className="msg-content-text">{msg.content}</span>
 
-                        <span className="msg-time-inline">
-                          {new Date(msg.created_at).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
+                        {isMine && deliveredMessages.has(msg.id) && (
+                          <span
+                            className={`msg-receipt ${readMessages.has(msg.id) ? "read" : deliveredMessages.has(msg.id) ? "delivered" : "sent"}`}
+                          >
+                            {readMessages.has(msg.id) ? "✓✓" : "✓"}
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>
@@ -771,23 +1038,24 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
         </div>
 
         {typingUsers.size > 0 && (
-          <div
-            style={{
-              padding: "0 24px 8px",
-              fontSize: 12,
-              color: "var(--text-muted)",
-            }}
-          >
-            {typingUsers.size === 1
-              ? `${Array.from(typingUsers.values())[0]} is typing...`
-              : `${typingUsers.size} people are typing...`}
+          <div className="typing-indicator">
+            <span className="typing-dots">
+              <span>●</span>
+              <span>●</span>
+              <span>●</span>
+            </span>
+            <span className="typing-text">
+              {typingUsers.size === 1
+                ? `${Array.from(typingUsers.values())[0]} is typing...`
+                : `${typingUsers.size} people are typing...`}
+            </span>
           </div>
         )}
         <div className="composer-wrapper">
           <div className="composer-box">
             <button
               className="icon-btn ghost"
-              style={{ color: "var(--text-muted)" }}
+              style={{ color: "var(--color-text-muted)" }}
             >
               <svg
                 width="20"
@@ -818,13 +1086,18 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
             />
 
             <button
-              className="send-btn"
+              className="primary"
               onClick={sendMessage}
               disabled={!message.trim()}
+              style={{
+                padding: 12,
+                borderRadius: "var(--radius-none)",
+                marginLeft: 8,
+              }}
             >
               <svg
-                width="14"
-                height="14"
+                width="16"
+                height="16"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -927,7 +1200,7 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
                 marginBottom: 16,
                 display: "flex",
                 justifyContent: "space-between",
-                color: "var(--accent)",
+                color: "var(--color-brand)",
               }}
             >
               Join Requests
@@ -935,8 +1208,8 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
                 <span
                   className="badge private"
                   style={{
-                    background: "var(--accent-glow)",
-                    color: "var(--accent)",
+                    background: "var(--color-brand)",
+                    color: "#fff",
                   }}
                 >
                   {joinRequests.length}
@@ -960,10 +1233,10 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
                   <div
                     key={req.id}
                     style={{
-                      background: "var(--bg-surface)",
+                      background: "var(--color-surface)",
                       padding: 12,
                       borderRadius: 8,
-                      border: "1px solid var(--border-dim)",
+                      border: "1px solid var(--color-border)",
                     }}
                   >
                     <div
@@ -976,7 +1249,7 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
                       {req.username}{" "}
                       <span
                         style={{
-                          color: "var(--text-muted)",
+                          color: "var(--color-text-muted)",
                           fontWeight: 400,
                         }}
                       >
@@ -991,6 +1264,7 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
                       }}
                     >
                       <button
+                        className="primary"
                         style={{
                           flex: 1,
                           padding: "4px 0",
@@ -1001,7 +1275,7 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
                       </button>
 
                       <button
-                        className="secondary danger"
+                        className="danger"
                         style={{
                           flex: 1,
                           padding: "4px 0",
@@ -1025,7 +1299,7 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
           }}
         >
           <button
-            className="secondary danger"
+            className="danger"
             onClick={onLogout}
             style={{ width: "100%" }}
           >

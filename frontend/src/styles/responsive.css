@@ -1,0 +1,61 @@
+/* ==================================================
+   RESPONSIVE DESIGN
+   ================================================== */
+@media (max-width: 1024px) {
+  .chat-panel {
+    position: fixed;
+    right: 0;
+    top: 64px;
+    height: calc(100vh - 64px);
+    transform: translateX(100%);
+    transition: transform var(--transition-base);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .chat-panel.open {
+    transform: translateX(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .shell-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    transform: translateX(-100%);
+    transition: transform var(--transition-base);
+    box-shadow: var(--shadow-lg);
+    z-index: 100;
+  }
+
+  .shell-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .room-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .login-visuals {
+    display: none; /* Hide huge visual text on mobile, just show form */
+  }
+
+  .login-form-area {
+    padding: var(--space-4);
+  }
+
+  .chat-header,
+  .shell-header {
+    padding: 0 var(--space-4);
+  }
+
+  .msg-gutter {
+    width: 48px;
+  }
+  .msg-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
+}

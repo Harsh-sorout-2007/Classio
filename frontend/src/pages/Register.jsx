@@ -59,143 +59,194 @@ function Register({ onGoToLogin }) {
 
   return (
     <div className="login-page">
-      <div className="login-visuals">
-        <div>
-          <div className="brand-logo">
-            <img
-              src={logo}
-              alt="Classio Logo"
-              className="brand-icon"
-              style={{ width: 40, height: 40 }}
-            />
-            <span style={{ fontSize: 24 }}>Classio</span>
+      <div
+        className="login-visuals"
+        style={{ background: "var(--color-navy)", color: "var(--color-white)" }}
+      >
+        <div
+          style={{
+            position: "relative",
+            zIndex: 1,
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",
+            justifyContent: "space-between",
+          }}
+        >
+          <div>
+            <div
+              style={{
+                fontSize: 24,
+                fontWeight: 800,
+                marginBottom: 80,
+                letterSpacing: "0.1em",
+              }}
+            >
+              CLASSIO
+            </div>
+            <div className="login-brand">
+              <h1 style={{ color: "var(--color-brand)" }}>
+                START
+                <br />
+                BUILDING
+                <br />
+                YOUR
+                <br />
+                SPACE.
+              </h1>
+              <p style={{ marginTop: 24 }}>
+                Join the new standard for communication.
+              </p>
+            </div>
           </div>
-          <div className="login-brand">
-            <h1>
-              Join your classroom.
-              <br />
-              Actually connected.
-            </h1>
-            <p>
-              Create an account to join professional workspaces and communities.
-            </p>
+
+          <div
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 13,
+              opacity: 0.6,
+            }}
+          >
+            02 / REGISTER
           </div>
-        </div>
-        <div style={{ color: "var(--text-faint)", fontSize: 13 }}>
-          © {new Date().getFullYear()} Classio Platform
         </div>
       </div>
 
-      <div className="login-form-area">
+      <div
+        className="login-form-area"
+        style={{
+          background: "var(--color-offwhite)",
+          color: "var(--color-navy)",
+        }}
+      >
         <div className="login-card">
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              marginBottom: 24,
-            }}
-          >
-            <img
-              src={logo}
-              alt="Logo"
-              style={{ width: 32, height: 32, borderRadius: "50%" }}
-            />
+          <div style={{ marginBottom: 40 }}>
             <h2>Create Account</h2>
+            <p className="subtitle" style={{ fontSize: 18, color: "#666" }}>
+              Join Classio today.
+            </p>
           </div>
-          <p className="subtitle text-muted">
-            Sign up to get started with Classio
-          </p>
+
+          {error && (
+            <div
+              style={{
+                background: "rgba(239, 68, 68, 0.1)",
+                color: "var(--color-danger)",
+                padding: 12,
+                marginBottom: 24,
+                borderLeft: "4px solid var(--color-danger)",
+              }}
+            >
+              {error}
+            </div>
+          )}
+
+          {successMsg && (
+            <div
+              style={{
+                background: "rgba(16, 185, 129, 0.1)",
+                color: "var(--color-success)",
+                padding: 12,
+                marginBottom: 24,
+                borderLeft: "4px solid var(--color-success)",
+              }}
+            >
+              {successMsg}
+            </div>
+          )}
 
           <form onSubmit={handleRegister}>
-            {error && (
-              <div
-                style={{
-                  color: "var(--danger)",
-                  marginBottom: 12,
-                  fontSize: 14,
-                }}
-              >
-                {error}
-              </div>
-            )}
-            {successMsg && (
-              <div
-                style={{
-                  color: "var(--success)",
-                  marginBottom: 12,
-                  fontSize: 14,
-                }}
-              >
-                {successMsg}
-              </div>
-            )}
-
-            <div className="form-group">
+            <div style={{ marginBottom: 24 }}>
               <label>Username</label>
               <input
                 type="text"
-                placeholder="johndoe"
+                placeholder="name"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(event) => setUsername(event.target.value)}
                 required
               />
             </div>
-
-            <div className="form-group">
+            <div style={{ marginBottom: 24 }}>
               <label>Email Address</label>
               <input
                 type="email"
                 placeholder="name@example.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(event) => setEmail(event.target.value)}
                 required
               />
             </div>
-
-            <div className="form-group">
+            <div style={{ marginBottom: 24 }}>
               <label>Password</label>
               <input
                 type="password"
                 placeholder="••••••••"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(event) => setPassword(event.target.value)}
                 required
               />
             </div>
-
-            <div className="form-group">
+            <div style={{ marginBottom: 48 }}>
               <label>Confirm Password</label>
               <input
                 type="password"
                 placeholder="••••••••"
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                onChange={(event) => setConfirmPassword(event.target.value)}
                 required
               />
             </div>
 
             <button
               type="submit"
-              style={{ width: "100%", padding: "12px", marginTop: 8 }}
+              className="primary"
+              style={{
+                width: "100%",
+                justifyContent: "space-between",
+                padding: 24,
+              }}
             >
               Create Account
-            </button>
-
-            <div style={{ textAlign: "center", marginTop: 24 }}>
-              <span className="text-muted" style={{ fontSize: 14 }}>
-                Already have an account?{" "}
+              <span className="btn-arrow">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
               </span>
+            </button>
+          </form>
+
+          <div
+            style={{
+              marginTop: 64,
+              borderTop: "1px solid #ccc",
+              paddingTop: 32,
+            }}
+          >
+            <p style={{ color: "#666", fontSize: 14 }}>
+              Already have an account?{" "}
               <button
-                type="button"
                 className="ghost"
-                style={{ padding: "4px 8px" }}
+                style={{
+                  color: "var(--color-brand)",
+                  padding: 0,
+                  fontWeight: 800,
+                  fontSize: 14,
+                }}
                 onClick={onGoToLogin}
               >
-                Login
+                LOG IN
               </button>
-            </div>
-          </form>
+            </p>
+          </div>
         </div>
       </div>
     </div>
