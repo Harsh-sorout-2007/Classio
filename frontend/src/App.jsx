@@ -1,16 +1,27 @@
 import { useState, useEffect } from "react";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import RoomList from "./pages/RoomList";
-import ChatRoom from "./pages/ChatRoom";
 import socket from "./services/socket";
+
+// Layout & Navigation
+import AppShell from "./components/layout/AppShell";
+import CreateRoomModal from "./components/common/CreateRoomModal";
+
+// Pages
+import Messages from "./pages/Messages";
+import RoomsPage from "./pages/Rooms";
+import SearchPage from "./pages/Search";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [authScreen, setAuthScreen] = useState("login");
+  
+  // Navigation State
+  const [currentTab, setCurrentTab] = useState("messages");
   const [selectedRoomId, setSelectedRoomId] = useState(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const [onlineUsers, setOnlineUsers] = useState(new Set());
 
@@ -91,6 +102,7 @@ function App() {
       setIsLoggedIn(false);
       setCurrentUser(null);
       setSelectedRoomId(null);
+      setCurrentTab("messages");
       setOnlineUsers(new Set());
     }
   };
@@ -131,23 +143,47 @@ function App() {
     }
   }
 
-  if (!selectedRoomId) {
-    return (
-      <RoomList
-        onRoomSelect={(roomId) => setSelectedRoomId(roomId)}
-        onLogout={handleLogout}
-      />
-    );
-  }
+  const handleRoomSelect = (roomId) => {
+    setSelectedRoomId(roomId);
+    setCurrentTab("messages"); // Switch to messages tab when a room is opened
+  };
 
   return (
-    <ChatRoom
-      roomId={selectedRoomId}
-      onBack={() => setSelectedRoomId(null)}
-      onLogout={handleLogout}
+    <AppShell
+      currentTab={currentTab}
+      onTabChange={setCurrentTab}
       currentUser={currentUser}
-      onlineUsers={onlineUsers}
-    />
+      onLogout={handleLogout}
+      onCreateRoomClick={() => setIsCreateModalOpen(true)}
+    >
+      {currentTab === "messages" && (
+        <Messages
+          currentUser={currentUser}
+          onlineUsers={onlineUsers}
+          selectedRoomId={selectedRoomId}
+          onRoomSelect={handleRoomSelect}
+          onLogout={handleLogout}
+        />
+      )}
+      
+      {currentTab === "rooms" && (
+        <RoomsPage onRoomSelect={handleRoomSelect} />
+      )}
+      
+      {currentTab === "search" && (
+        <SearchPage onRoomSelect={handleRoomSelect} />
+      )}
+
+      {isCreateModalOpen && (
+        <CreateRoomModal
+          onClose={() => setIsCreateModalOpen(false)}
+          onRoomCreated={(room) => {
+            setIsCreateModalOpen(false);
+            handleRoomSelect(room.id);
+          }}
+        />
+      )}
+    </AppShell>
   );
 }
 

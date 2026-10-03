@@ -20,4 +20,19 @@ app.use("/api/v1/users", userRouter);
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/room", roomRouter);
 
+// Global Error Handler
+app.use((err, req, res, next) => {
+  if (err instanceof Error) {
+    const statusCode = err.statusCode || 500;
+    res.status(statusCode).json({
+      success: false,
+      message: err.message || "Internal Server Error",
+      errors: err.errors || [],
+      stack: process.env.NODE_ENV === "development" ? err.stack : undefined
+    });
+  } else {
+    next(err);
+  }
+});
+
 export { app };

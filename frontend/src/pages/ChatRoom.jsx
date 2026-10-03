@@ -589,83 +589,7 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
   };
 
   return (
-    <div className="chat-workspace">
-      {/* 1. NAV (Rooms & Actions) */}
-      <div className="shell-sidebar">
-        <div
-          className="shell-header"
-          style={{ borderBottom: "1px solid var(--color-border-subtle)" }}
-        >
-          <div className="brand-logo" style={{ fontSize: 20 }}>
-            <span style={{ fontWeight: 800 }}>Classio</span>
-          </div>
-        </div>
-        <div className="shell-nav">
-          <button
-            className="nav-link no-prefix"
-            onClick={onBack}
-            title="Back to Dashboard"
-            style={{ marginBottom: 16 }}
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              style={{ marginRight: 8, verticalAlign: "middle" }}
-            >
-              <path d="M19 12H5M12 19l-7-7 7-7" />
-            </svg>
-            Dashboard
-          </button>
-
-          <h4 style={{ padding: "8px 12px", marginTop: 8 }}>My Rooms</h4>
-          {isLoadingRooms ? (
-            <div
-              style={{
-                padding: "0 12px",
-                color: "var(--color-text-muted)",
-                fontSize: 13,
-              }}
-            >
-              Loading...
-            </div>
-          ) : (
-            userRooms.map((room) => (
-              <button
-                key={room.id}
-                className={`nav-link ${room.id === roomId ? "active" : ""}`}
-                onClick={() => {
-                  if (room.id !== roomId) {
-                    if (socket) socket.disconnect();
-                    onBack();
-                  }
-                }}
-              >
-                {room.name}
-              </button>
-            ))
-          )}
-        </div>
-        <div
-          style={{
-            padding: 16,
-            marginTop: "auto",
-            borderTop: "1px solid var(--color-border-subtle)",
-          }}
-        >
-          <button
-            className="danger ghost"
-            onClick={onLogout}
-            style={{ width: "100%", justifyContent: "flex-start" }}
-          >
-            Logout
-          </button>
-        </div>
-      </div>
-
+    <div style={{ display: "flex", flex: 1, minWidth: 0, height: "100%" }}>
       <div className="chat-core">
         <div className="chat-header">
           <div
@@ -675,6 +599,12 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
               gap: 16,
             }}
           >
+            <button className="icon-btn ghost" onClick={onBack} title="Close Chat" style={{ marginRight: -4 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+              </svg>
+            </button>
             <div>
               <div
                 style={{
@@ -862,173 +792,113 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
               ))}
             </div>
           ) : messages.length === 0 ? (
-            <div
-              className="empty-state"
-              style={{
-                margin: "auto",
-                textAlign: "left",
-                alignItems: "flex-start",
-                paddingLeft: 64,
-              }}
-            >
-              <h3 style={{ color: "var(--color-brand)" }}>
-                START THE
-                <br />
-                CONVERSATION.
-              </h3>
-              <p style={{ fontSize: 24, marginBottom: 48, maxWidth: 400 }}>
-                Nothing here yet. Be the first to say hello.
-              </p>
-              <div
-                style={{
-                  position: "absolute",
-                  right: -50,
-                  bottom: -100,
-                  fontSize: "16vw",
-                  fontWeight: 800,
-                  color: "rgba(255,255,255,0.02)",
-                  zIndex: -1,
-                }}
-              >
-                CLASSIO
-              </div>
+            <div className="empty-state">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 16 }}>
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+              </svg>
+              <h3>No messages yet</h3>
+              <p>Be the first to say hello.</p>
             </div>
           ) : (
             messages.map((msg, index) => {
               const prevMsg = messages[index - 1];
+              const nextMsg = messages[index + 1];
 
-              const isGrouped =
+              const isGroupedWithPrev =
                 prevMsg &&
                 prevMsg.username === msg.username &&
-                new Date(msg.created_at) - new Date(prevMsg.created_at) <
-                  300000;
+                new Date(msg.created_at) - new Date(prevMsg.created_at) < 300000;
+
+              const isGroupedWithNext =
+                nextMsg &&
+                nextMsg.username === msg.username &&
+                new Date(nextMsg.created_at) - new Date(msg.created_at) < 300000;
+
+              let bubblePosition = "single";
+              if (isGroupedWithPrev && isGroupedWithNext) bubblePosition = "middle";
+              else if (isGroupedWithPrev && !isGroupedWithNext) bubblePosition = "last";
+              else if (!isGroupedWithPrev && isGroupedWithNext) bubblePosition = "first";
 
               const isMine = msg.username === currentUser?.username;
+              const alignClass = isMine ? "mine" : "theirs";
 
               return (
                 <div
                   key={msg.id}
-                  className={`message-group ${
-                    !isGrouped ? "first" : ""
-                  } ${isMine ? "is-mine" : ""}`}
+                  className={`message-row ${alignClass} ${!isGroupedWithPrev ? "new-group" : ""}`}
                 >
-                  <div className="msg-gutter">
-                    {!isGrouped && (
+                  {/* For 'theirs' we show the name on the first message of a group */}
+                  {!isMine && !isGroupedWithPrev && (
+                    <div className="msg-author-name">{msg.username}</div>
+                  )}
+
+                  <div className={`bubble-container ${alignClass} ${!isMine && isGroupedWithNext ? "no-avatar" : ""}`}>
+                    {!isMine && !isGroupedWithNext && (
                       <div className="msg-avatar">
                         {msg.username.charAt(0).toUpperCase()}
                       </div>
                     )}
-                    {isGrouped && (
-                      <div className="msg-gutter-timestamp">
-                        {new Date(msg.created_at).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </div>
-                    )}
-                  </div>
 
-                  <div className="msg-body">
-                    {!isGrouped && (
-                      <div className="msg-meta">
-                        <span className="msg-author">{msg.username}</span>
-                        <span className="msg-time-inline">
-                          {new Date(msg.created_at).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
+                    <div className={`msg-bubble ${bubblePosition}`}>
+                      {editingMessageId === msg.id ? (
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <input
+                            value={editMessageContent}
+                            onChange={(e) => setEditMessageContent(e.target.value)}
+                            autoFocus
+                            style={{ padding: "4px 8px", background: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "#fff" }}
+                          />
+                          <button className="primary" style={{ padding: "4px 8px", fontSize: 12 }} onClick={() => submitEditMessage(msg.id)}>
+                            Save
+                          </button>
+                          <button className="ghost" style={{ padding: "4px 8px", fontSize: 12, color: "#fff" }} onClick={() => setEditingMessageId(null)}>
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="msg-content">
+                          {msg.content}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="bubble-meta">
+                      {isMine && editingMessageId !== msg.id && (
+                        <div className="msg-actions">
+                          <button
+                            className="icon-btn ghost"
+                            onClick={() => {
+                              setEditingMessageId(msg.id);
+                              setEditMessageContent(msg.content);
+                            }}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                            </svg>
+                          </button>
+                          <button
+                            className="icon-btn ghost danger"
+                            onClick={() => deleteMessage(msg.id)}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <polyline points="3 6 5 6 21 6"></polyline>
+                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                          </button>
+                        </div>
+                      )}
+
+                      <span className="msg-time">
+                        {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                      
+                      {isMine && deliveredMessages.has(msg.id) && (
+                        <span className={`msg-receipt ${readMessages.has(msg.id) ? "read" : deliveredMessages.has(msg.id) ? "delivered" : "sent"}`}>
+                          {readMessages.has(msg.id) ? "✓✓" : "✓"}
                         </span>
-                      </div>
-                    )}
-
-                    {editingMessageId === msg.id ? (
-                      <div
-                        style={{
-                          marginTop: 4,
-                          display: "flex",
-                          gap: 8,
-                        }}
-                      >
-                        <input
-                          value={editMessageContent}
-                          onChange={(e) =>
-                            setEditMessageContent(e.target.value)
-                          }
-                          autoFocus
-                          style={{ padding: 6 }}
-                        />
-
-                        <button
-                          className="primary"
-                          style={{ padding: "6px 12px" }}
-                          onClick={() => submitEditMessage(msg.id)}
-                        >
-                          Save
-                        </button>
-
-                        <button
-                          className="ghost"
-                          style={{ padding: "6px 12px" }}
-                          onClick={() => setEditingMessageId(null)}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="msg-content">
-                        <span className="msg-content-text">{msg.content}</span>
-
-                        {isMine && deliveredMessages.has(msg.id) && (
-                          <span
-                            className={`msg-receipt ${readMessages.has(msg.id) ? "read" : deliveredMessages.has(msg.id) ? "delivered" : "sent"}`}
-                          >
-                            {readMessages.has(msg.id) ? "✓✓" : "✓"}
-                          </span>
-                        )}
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
-
-                  {msg.username === currentUser?.username &&
-                    editingMessageId !== msg.id && (
-                      <div className="msg-actions">
-                        <button
-                          className="icon-btn ghost"
-                          onClick={() => {
-                            setEditingMessageId(msg.id);
-                            setEditMessageContent(msg.content);
-                          }}
-                        >
-                          <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                          >
-                            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-                          </svg>
-                        </button>
-
-                        <button
-                          className="icon-btn ghost danger"
-                          onClick={() => deleteMessage(msg.id)}
-                        >
-                          <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                          >
-                            <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                          </svg>
-                        </button>
-                      </div>
-                    )}
                 </div>
               );
             })
@@ -1086,14 +956,9 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
             />
 
             <button
-              className="primary"
+              className="send-btn"
               onClick={sendMessage}
               disabled={!message.trim()}
-              style={{
-                padding: 12,
-                borderRadius: "var(--radius-none)",
-                marginLeft: 8,
-              }}
             >
               <svg
                 width="16"

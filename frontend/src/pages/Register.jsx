@@ -8,6 +8,7 @@ function Register({ onGoToLogin }) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleRegister = async (event) => {
     event.preventDefault();
@@ -23,6 +24,8 @@ function Register({ onGoToLogin }) {
       setError("Passwords do not match.");
       return;
     }
+
+    setIsLoading(true);
 
     try {
       const response = await fetch(
@@ -54,199 +57,104 @@ function Register({ onGoToLogin }) {
     } catch (err) {
       console.error("Register request failed:", err);
       setError("Network error. Please try again later.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="login-page">
-      <div
-        className="login-visuals"
-        style={{ background: "var(--color-navy)", color: "var(--color-white)" }}
-      >
-        <div
-          style={{
-            position: "relative",
-            zIndex: 1,
-            display: "flex",
-            flexDirection: "column",
-            height: "100%",
-            justifyContent: "space-between",
-          }}
-        >
-          <div>
-            <div
-              style={{
-                fontSize: 24,
-                fontWeight: 800,
-                marginBottom: 80,
-                letterSpacing: "0.1em",
-              }}
-            >
-              CLASSIO
-            </div>
-            <div className="login-brand">
-              <h1 style={{ color: "var(--color-brand)" }}>
-                START
-                <br />
-                BUILDING
-                <br />
-                YOUR
-                <br />
-                SPACE.
-              </h1>
-              <p style={{ marginTop: 24 }}>
-                Join the new standard for communication.
-              </p>
-            </div>
-          </div>
-
-          <div
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 13,
-              opacity: 0.6,
-            }}
-          >
-            02 / REGISTER
-          </div>
+      <div className="login-card">
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+          <img
+            src={logo}
+            alt="Classio Logo"
+            style={{ width: 24, height: 24, opacity: 0.8 }}
+          />
+          <span style={{ fontWeight: 600, fontSize: 16 }}>Classio</span>
         </div>
-      </div>
+        
+        <h2>Create an account</h2>
+        <p className="subtitle">Sign up to get started.</p>
 
-      <div
-        className="login-form-area"
-        style={{
-          background: "var(--color-offwhite)",
-          color: "var(--color-navy)",
-        }}
-      >
-        <div className="login-card">
-          <div style={{ marginBottom: 40 }}>
-            <h2>Create Account</h2>
-            <p className="subtitle" style={{ fontSize: 18, color: "#666" }}>
-              Join Classio today.
-            </p>
+        {error && (
+          <div style={{ background: "var(--color-bg-base)", color: "var(--color-danger)", padding: 12, marginBottom: 16, border: "1px solid var(--color-danger)", borderRadius: "var(--radius-sm)", fontSize: 13 }}>
+            {error}
+          </div>
+        )}
+
+        {successMsg && (
+          <div style={{ background: "var(--color-bg-base)", color: "var(--color-success)", padding: 12, marginBottom: 16, border: "1px solid var(--color-success)", borderRadius: "var(--radius-sm)", fontSize: 13 }}>
+            {successMsg}
+          </div>
+        )}
+
+        <form onSubmit={handleRegister}>
+          <div style={{ marginBottom: 16 }}>
+            <label>Username</label>
+            <input
+              type="text"
+              placeholder="e.g. alex_dev"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+            />
           </div>
 
-          {error && (
-            <div
-              style={{
-                background: "rgba(239, 68, 68, 0.1)",
-                color: "var(--color-danger)",
-                padding: 12,
-                marginBottom: 24,
-                borderLeft: "4px solid var(--color-danger)",
-              }}
-            >
-              {error}
-            </div>
-          )}
+          <div style={{ marginBottom: 16 }}>
+            <label>Email</label>
+            <input
+              type="email"
+              placeholder="name@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
 
-          {successMsg && (
-            <div
-              style={{
-                background: "rgba(16, 185, 129, 0.1)",
-                color: "var(--color-success)",
-                padding: 12,
-                marginBottom: 24,
-                borderLeft: "4px solid var(--color-success)",
-              }}
-            >
-              {successMsg}
-            </div>
-          )}
+          <div style={{ marginBottom: 16 }}>
+            <label>Password</label>
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
 
-          <form onSubmit={handleRegister}>
-            <div style={{ marginBottom: 24 }}>
-              <label>Username</label>
-              <input
-                type="text"
-                placeholder="name"
-                value={username}
-                onChange={(event) => setUsername(event.target.value)}
-                required
-              />
-            </div>
-            <div style={{ marginBottom: 24 }}>
-              <label>Email Address</label>
-              <input
-                type="email"
-                placeholder="name@example.com"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                required
-              />
-            </div>
-            <div style={{ marginBottom: 24 }}>
-              <label>Password</label>
-              <input
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                required
-              />
-            </div>
-            <div style={{ marginBottom: 48 }}>
-              <label>Confirm Password</label>
-              <input
-                type="password"
-                placeholder="••••••••"
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-                required
-              />
-            </div>
+          <div style={{ marginBottom: 24 }}>
+            <label>Confirm Password</label>
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+            />
+          </div>
 
-            <button
-              type="submit"
-              className="primary"
-              style={{
-                width: "100%",
-                justifyContent: "space-between",
-                padding: 24,
-              }}
-            >
-              Create Account
-              <span className="btn-arrow">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </span>
-            </button>
-          </form>
-
-          <div
-            style={{
-              marginTop: 64,
-              borderTop: "1px solid #ccc",
-              paddingTop: 32,
-            }}
+          <button
+            type="submit"
+            className="primary"
+            disabled={isLoading}
+            style={{ width: "100%" }}
           >
-            <p style={{ color: "#666", fontSize: 14 }}>
-              Already have an account?{" "}
-              <button
-                className="ghost"
-                style={{
-                  color: "var(--color-brand)",
-                  padding: 0,
-                  fontWeight: 800,
-                  fontSize: 14,
-                }}
-                onClick={onGoToLogin}
-              >
-                LOG IN
-              </button>
-            </p>
-          </div>
+            {isLoading ? "Creating..." : "Sign up"}
+          </button>
+        </form>
+
+        <div style={{ marginTop: 24, textAlign: "center" }}>
+          <p style={{ color: "var(--color-text-secondary)" }}>
+            Already have an account?{" "}
+            <button
+              className="ghost"
+              style={{ color: "var(--color-text-primary)", padding: "0 4px" }}
+              onClick={onGoToLogin}
+            >
+              Sign in
+            </button>
+          </p>
         </div>
       </div>
     </div>
