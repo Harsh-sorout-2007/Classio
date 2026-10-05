@@ -65,7 +65,14 @@ function Register({ onGoToLogin }) {
   return (
     <div className="login-page">
       <div className="login-card">
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            marginBottom: 24,
+          }}
+        >
           <img
             src={logo}
             alt="Classio Logo"
@@ -73,18 +80,38 @@ function Register({ onGoToLogin }) {
           />
           <span style={{ fontWeight: 600, fontSize: 16 }}>Classio</span>
         </div>
-        
+
         <h2>Create an account</h2>
         <p className="subtitle">Sign up to get started.</p>
 
         {error && (
-          <div style={{ background: "var(--color-bg-base)", color: "var(--color-danger)", padding: 12, marginBottom: 16, border: "1px solid var(--color-danger)", borderRadius: "var(--radius-sm)", fontSize: 13 }}>
+          <div
+            style={{
+              background: "var(--color-bg-base)",
+              color: "var(--color-danger)",
+              padding: 12,
+              marginBottom: 16,
+              border: "1px solid var(--color-danger)",
+              borderRadius: "var(--radius-sm)",
+              fontSize: 13,
+            }}
+          >
             {error}
           </div>
         )}
 
         {successMsg && (
-          <div style={{ background: "var(--color-bg-base)", color: "var(--color-success)", padding: 12, marginBottom: 16, border: "1px solid var(--color-success)", borderRadius: "var(--radius-sm)", fontSize: 13 }}>
+          <div
+            style={{
+              background: "var(--color-bg-base)",
+              color: "var(--color-success)",
+              padding: 12,
+              marginBottom: 16,
+              border: "1px solid var(--color-success)",
+              borderRadius: "var(--radius-sm)",
+              fontSize: 13,
+            }}
+          >
             {successMsg}
           </div>
         )}

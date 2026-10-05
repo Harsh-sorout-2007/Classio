@@ -40,7 +40,14 @@ function Login({ onLogin, onGoToRegister }) {
   return (
     <div className="login-page">
       <div className="login-card">
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            marginBottom: 24,
+          }}
+        >
           <img
             src={logo}
             alt="Classio Logo"
@@ -48,7 +55,7 @@ function Login({ onLogin, onGoToRegister }) {
           />
           <span style={{ fontWeight: 600, fontSize: 16 }}>Classio</span>
         </div>
-        
+
         <h2>Sign in</h2>
         <p className="subtitle">Enter your details to continue.</p>
 

@@ -17,7 +17,7 @@ function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [authScreen, setAuthScreen] = useState("login");
-  
+
   // Navigation State
   const [currentTab, setCurrentTab] = useState("messages");
   const [selectedRoomId, setSelectedRoomId] = useState(null);
@@ -165,11 +165,9 @@ function App() {
           onLogout={handleLogout}
         />
       )}
-      
-      {currentTab === "rooms" && (
-        <RoomsPage onRoomSelect={handleRoomSelect} />
-      )}
-      
+
+      {currentTab === "rooms" && <RoomsPage onRoomSelect={handleRoomSelect} />}
+
       {currentTab === "search" && (
         <SearchPage onRoomSelect={handleRoomSelect} />
       )}

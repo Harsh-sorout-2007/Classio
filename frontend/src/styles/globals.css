@@ -6,45 +6,45 @@
   /* ==================================================
      COLOR SYSTEM: INSTAGRAM / WHATSAPP DM STYLE
      ================================================== */
-  
-  --color-bg-base: #0F1115;
+
+  --color-bg-base: #0f1115;
   --color-bg-secondary: #161922;
   --color-bg-elevated: #1d2129;
-  
-  --color-bubble-theirs: #262A33;
-  --color-bubble-mine: #0095F6;
+
+  --color-bubble-theirs: #262a33;
+  --color-bubble-mine: #0095f6;
 
   --color-border: rgba(255, 255, 255, 0.08);
   --color-border-hover: rgba(255, 255, 255, 0.14);
 
-  --color-text-primary: #F1F2F4;
-  --color-text-secondary: #8E8E8E;
+  --color-text-primary: #f1f2f4;
+  --color-text-secondary: #8e8e8e;
   --color-text-muted: rgba(241, 242, 244, 0.4);
-  
+
   /* Accent: IG Blue */
-  --color-accent: #0095F6;
-  --color-accent-hover: #1877F2; 
-  --color-accent-active: #0064C8; 
-  
+  --color-accent: #0095f6;
+  --color-accent-hover: #1877f2;
+  --color-accent-active: #0064c8;
+
   --color-accent-text: #ffffff;
 
-  --color-danger: #E41E3F;
+  --color-danger: #e41e3f;
   --color-danger-bg: rgba(228, 30, 63, 0.08);
 
-  --color-success: #31A24C;
+  --color-success: #31a24c;
 
-  --color-avatar-bg: #4B4C4F;
+  --color-avatar-bg: #4b4c4f;
 
   /* ==================================================
      TYPOGRAPHY
      ================================================== */
-  
+
   --font-body: "Inter", system-ui, -apple-system, sans-serif;
 
   /* ==================================================
      SPACING & SHAPE
      ================================================== */
-  
+
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -63,7 +63,7 @@
      MOTION & DEPTH
      ================================================== */
   --transition-fast: 0.15s ease-out;
-  
+
   --shadow-floating: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
@@ -71,21 +71,21 @@
   --color-bg-base: #ffffff;
   --color-bg-secondary: #fafafa;
   --color-bg-elevated: #f0f0f0;
-  
-  --color-bubble-theirs: #EFEFEF;
-  --color-bubble-mine: #0095F6;
+
+  --color-bubble-theirs: #efefef;
+  --color-bubble-mine: #0095f6;
 
   --color-border: rgba(0, 0, 0, 0.08);
   --color-border-hover: rgba(0, 0, 0, 0.14);
 
   --color-text-primary: #000000;
-  --color-text-secondary: #8E8E8E;
+  --color-text-secondary: #8e8e8e;
   --color-text-muted: rgba(0, 0, 0, 0.4);
-  
+
   --color-accent-text: #ffffff;
   --shadow-floating: 0 2px 8px rgba(0, 0, 0, 0.08);
 
-  --color-avatar-bg: #EFEFEF;
+  --color-avatar-bg: #efefef;
 }
 
 * {
@@ -108,17 +108,30 @@ body {
    TYPOGRAPHY
    ================================================== */
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-body);
   color: var(--color-text-primary);
   margin: 0;
   font-weight: 600;
 }
 
-h1 { font-size: 24px; }
-h2 { font-size: 20px; }
-h3 { font-size: 16px; }
-h4 { font-size: 14px; }
+h1 {
+  font-size: 24px;
+}
+h2 {
+  font-size: 20px;
+}
+h3 {
+  font-size: 16px;
+}
+h4 {
+  font-size: 14px;
+}
 
 p {
   color: var(--color-text-secondary);
@@ -141,7 +154,8 @@ label {
   margin-bottom: var(--space-1);
 }
 
-input:not([type="checkbox"]), textarea {
+input:not([type="checkbox"]),
+textarea {
   width: 100%;
   background: var(--color-bg-base);
   border: 1px solid var(--color-border);
@@ -153,12 +167,14 @@ input:not([type="checkbox"]), textarea {
   transition: border-color var(--transition-fast);
 }
 
-input:not([type="checkbox"]):focus, textarea:focus {
+input:not([type="checkbox"]):focus,
+textarea:focus {
   outline: none;
   border-color: var(--color-accent);
 }
 
-input::placeholder, textarea::placeholder {
+input::placeholder,
+textarea::placeholder {
   color: var(--color-text-muted);
 }
 
@@ -198,12 +214,14 @@ button.primary:disabled {
 }
 
 /* Secondary */
-button, button.secondary {
+button,
+button.secondary {
   background: transparent;
   color: var(--color-text-primary);
   border: 1px solid var(--color-border);
 }
-button:hover, button.secondary:hover {
+button:hover,
+button.secondary:hover {
   background: var(--color-bg-elevated);
   border-color: var(--color-border-hover);
 }
@@ -265,9 +283,17 @@ button.ghost:hover {
   height: 100vh;
   width: 100vw;
   background-color: #0b1020;
-  background-image: 
-    radial-gradient(circle at 15% 50%, rgba(88, 101, 242, 0.08) 0%, transparent 50%),
-    radial-gradient(circle at 85% 30%, rgba(139, 147, 255, 0.08) 0%, transparent 50%);
+  background-image:
+    radial-gradient(
+      circle at 15% 50%,
+      rgba(88, 101, 242, 0.08) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 85% 30%,
+      rgba(139, 147, 255, 0.08) 0%,
+      transparent 50%
+    );
   color: var(--color-text-primary);
 }
 
@@ -333,7 +359,9 @@ button.ghost:hover {
   display: flex;
   min-height: 0;
   min-width: 0;
-  background: var(--color-bg-base); /* Wait, remove this to allow radial gradient to show? Let's make it transparent */
+  background: var(
+    --color-bg-base
+  ); /* Wait, remove this to allow radial gradient to show? Let's make it transparent */
   background: transparent;
 }
 
@@ -371,7 +399,7 @@ button.ghost:hover {
   border: 1px solid var(--color-border);
   border-radius: 16px;
   padding: var(--space-5); /* 24px */
-  box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
   display: flex;
   flex-direction: column;
 }
@@ -597,7 +625,7 @@ button.ghost:hover {
 .msg-receipt {
   display: inline-block;
   font-size: 11px;
-  color: rgba(255,255,255,0.7); /* white tint inside my bubble */
+  color: rgba(255, 255, 255, 0.7); /* white tint inside my bubble */
   margin-left: 6px;
   vertical-align: middle;
 }
@@ -713,8 +741,12 @@ button.ghost:hover {
   border-radius: var(--radius-avatar);
   border: 2px solid var(--color-bg-secondary);
 }
-.member-status-dot.online { background: var(--color-success); }
-.member-status-dot.offline { background: var(--color-text-muted); }
+.member-status-dot.online {
+  background: var(--color-success);
+}
+.member-status-dot.offline {
+  background: var(--color-text-muted);
+}
 
 .member-name {
   font-size: 14px;
@@ -789,7 +821,13 @@ button.ghost:hover {
 }
 
 @keyframes pulse {
-  0% { opacity: 0.4; }
-  50% { opacity: 0.7; }
-  100% { opacity: 0.4; }
+  0% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0.4;
+  }
 }

@@ -7,6 +7,12 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import { verifySocketJWT } from "./middleware/socket.middleware.js";
 
+/*
+============================================================
+SERVER SETUP
+============================================================
+*/
+
 const PORT = process.env.PORT || 5000;
 
 const server = createServer(app);
@@ -20,7 +26,35 @@ const io = new Server(server, {
 
 io.use(verifySocketJWT);
 
+/*
+============================================================
+ONLINE USERS
+============================================================
+
+Map structure:
+
+userId -> Set of socket IDs
+
+Example:
+
+{
+  "user-123": Set(["socket-1", "socket-2"]),
+  "user-456": Set(["socket-3"])
+}
+
+This allows the same user to be connected
+from multiple browser tabs/devices.
+============================================================
+*/
+
 const onlineUsers = new Map();
+const activeCalls = new Map();
+
+/*
+============================================================
+RECEIPT HELPER
+============================================================
+*/
 
 const emitReceiptUpdate = async (messageId) => {
   try {
@@ -87,11 +121,23 @@ const emitReceiptUpdate = async (messageId) => {
   }
 };
 
+/*
+============================================================
+SOCKET CONNECTION
+============================================================
+*/
+
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
   console.log("Authenticated user:", socket.user);
 
   const userId = socket.user._id;
+
+  /*
+  ==========================================================
+  PRESENCE
+  ==========================================================
+  */
 
   const wasOffline = !onlineUsers.has(userId);
 
@@ -110,10 +156,37 @@ io.on("connection", (socket) => {
     });
   }
 
+  socket.on("call-recovery-ready", () => {
+    console.log("🔥 call-recovery-ready RECEIVED:", socket.user.username);
+    const activeCall = activeCalls.get(userId);
+
+    if (!activeCall) {
+      console.log("No active call to recover for:", socket.user.username);
+      return;
+    }
+
+    if (activeCall.timeoutId) {
+      clearTimeout(activeCall.timeoutId);
+      activeCall.timeoutId = null;
+    }
+
+    console.log(
+      "Sending call recovery to:",
+      socket.user.username,
+      "Peer:",
+      activeCall.peerId,
+    );
+
+    socket.emit("resume-call", {
+      remoteUserId: activeCall.peerId,
+      callType: activeCall.callType,
+    });
+  });
+
   /*
-  ============================================================
+  ==========================================================
   DISCONNECT
-  ============================================================
+  ==========================================================
   */
 
   socket.on("disconnect", () => {
@@ -132,13 +205,36 @@ io.on("connection", (socket) => {
         userId,
         username: socket.user.username,
       });
+
+      const call = activeCalls.get(userId);
+      if (call) {
+        call.timeoutId = setTimeout(() => {
+          const c = activeCalls.get(userId);
+          if (c) {
+            const peerSockets = onlineUsers.get(c.peerId);
+            if (peerSockets) {
+              peerSockets.forEach((socketId) => {
+                io.to(socketId).emit("call-ended");
+              });
+            }
+            activeCalls.delete(c.peerId);
+          }
+          activeCalls.delete(userId);
+        }, 15000);
+      }
     }
   });
 
   /*
-  ============================================================
+  ==========================================================
+  ROOM
+  ==========================================================
+  */
+
+  /*
+  ----------------------------------------------------------
   JOIN ROOM
-  ============================================================
+  ----------------------------------------------------------
   */
 
   socket.on("join-room", async (roomId) => {
@@ -186,20 +282,26 @@ io.on("connection", (socket) => {
   });
 
   /*
-  ============================================================
+  ==========================================================
+  MESSAGES
+  ==========================================================
+  */
+
+  /*
+  ----------------------------------------------------------
   SEND MESSAGE
-  ============================================================
+  ----------------------------------------------------------
   */
 
   socket.on("send-message", async ({ roomId, content }, callback) => {
     try {
       const isMember = await pool.query(
         `
-          SELECT id
-          FROM room_members
-          WHERE room_id = $1
-            AND user_id = $2
-          `,
+        SELECT id
+        FROM room_members
+        WHERE room_id = $1
+          AND user_id = $2
+        `,
         [roomId, userId],
       );
 
@@ -212,33 +314,45 @@ io.on("connection", (socket) => {
         return;
       }
 
+      /*
+      --------------------------------------------------------
+      SAVE MESSAGE
+      --------------------------------------------------------
+      */
+
       const message = await pool.query(
         `
-          INSERT INTO messages (
-            room_id,
-            user_id,
-            content
-          )
-          VALUES ($1, $2, $3)
+        INSERT INTO messages (
+          room_id,
+          user_id,
+          content
+        )
+        VALUES ($1, $2, $3)
 
-          RETURNING
-            id,
-            room_id,
-            user_id,
-            content,
-            created_at
-          `,
+        RETURNING
+          id,
+          room_id,
+          user_id,
+          content,
+          created_at
+        `,
         [roomId, userId, content],
       );
 
       const savedMessage = message.rows[0];
 
+      /*
+      --------------------------------------------------------
+      GET SENDER USERNAME
+      --------------------------------------------------------
+      */
+
       const user = await pool.query(
         `
-          SELECT username
-          FROM users
-          WHERE id = $1
-          `,
+        SELECT username
+        FROM users
+        WHERE id = $1
+        `,
         [userId],
       );
 
@@ -247,32 +361,38 @@ io.on("connection", (socket) => {
         username: user.rows[0].username,
       };
 
+      /*
+      --------------------------------------------------------
+      ACKNOWLEDGE SENDER
+      --------------------------------------------------------
+      */
+
       callback({
         success: true,
         message: newMessage,
       });
 
       /*
-        ========================================================
-        FIND OTHER ROOM MEMBERS
-        ========================================================
-        */
+      --------------------------------------------------------
+      FIND OTHER ROOM MEMBERS
+      --------------------------------------------------------
+      */
 
       const recipients = await pool.query(
         `
-          SELECT user_id
-          FROM room_members
-          WHERE room_id = $1
-            AND user_id <> $2
-          `,
+        SELECT user_id
+        FROM room_members
+        WHERE room_id = $1
+          AND user_id <> $2
+        `,
         [roomId, userId],
       );
 
       /*
-        ========================================================
-        DELIVER TO ONLINE USERS
-        ========================================================
-        */
+      --------------------------------------------------------
+      DELIVER TO ONLINE USERS
+      --------------------------------------------------------
+      */
 
       for (const recipient of recipients.rows) {
         const recipientId = recipient.user_id;
@@ -285,33 +405,51 @@ io.on("connection", (socket) => {
           continue;
         }
 
+        /*
+        ------------------------------------------------------
+        CREATE / UPDATE DELIVERY RECEIPT
+        ------------------------------------------------------
+        */
+
         await pool.query(
           `
-            INSERT INTO message_receipts (
-              message_id,
-              user_id,
-              delivered_at
-            )
-            VALUES (
-              $1,
-              $2,
+          INSERT INTO message_receipts (
+            message_id,
+            user_id,
+            delivered_at
+          )
+          VALUES (
+            $1,
+            $2,
+            CURRENT_TIMESTAMP
+          )
+
+          ON CONFLICT (message_id, user_id)
+
+          DO UPDATE SET
+            delivered_at = COALESCE(
+              message_receipts.delivered_at,
               CURRENT_TIMESTAMP
             )
-
-            ON CONFLICT (message_id, user_id)
-
-            DO UPDATE SET
-              delivered_at = COALESCE(
-                message_receipts.delivered_at,
-                CURRENT_TIMESTAMP
-              )
-            `,
+          `,
           [savedMessage.id, recipientId],
         );
+
+        /*
+        ------------------------------------------------------
+        SEND MESSAGE TO RECIPIENT SOCKETS
+        ------------------------------------------------------
+        */
 
         recipientSockets.forEach((socketId) => {
           io.to(socketId).emit("new-message", newMessage);
         });
+
+        /*
+        ------------------------------------------------------
+        UPDATE SENDER RECEIPT STATUS
+        ------------------------------------------------------
+        */
 
         await emitReceiptUpdate(savedMessage.id);
       }
@@ -326,10 +464,15 @@ io.on("connection", (socket) => {
   });
 
   /*
-  ============================================================
+  ==========================================================
+  READ RECEIPTS
+  ==========================================================
+  */
+
+  /*
+  ----------------------------------------------------------
   MARK ROOM AS READ
-  ============================================================
-  
+  ----------------------------------------------------------
   */
 
   socket.on("mark-room-read", async (roomId) => {
@@ -400,33 +543,33 @@ io.on("connection", (socket) => {
   });
 
   /*
-============================================================
-MARK SINGLE MESSAGE AS READ
-============================================================
-*/
+  ----------------------------------------------------------
+  MARK SINGLE MESSAGE AS READ
+  ----------------------------------------------------------
+  */
 
   socket.on("message-read", async ({ messageId }) => {
     try {
       /*
       Find the message and make sure the current user
       is actually a recipient of that message.
-    */
+      */
 
       const messageResult = await pool.query(
         `
-      SELECT
-        m.id,
-        m.room_id,
-        m.user_id AS sender_id
-      FROM messages m
+        SELECT
+          m.id,
+          m.room_id,
+          m.user_id AS sender_id
+        FROM messages m
 
-      JOIN room_members rm
-        ON rm.room_id = m.room_id
-       AND rm.user_id = $2
+        JOIN room_members rm
+          ON rm.room_id = m.room_id
+         AND rm.user_id = $2
 
-      WHERE m.id = $1
-        AND m.user_id <> $2
-      `,
+        WHERE m.id = $1
+          AND m.user_id <> $2
+        `,
         [messageId, userId],
       );
 
@@ -439,43 +582,43 @@ MARK SINGLE MESSAGE AS READ
 
       Create the receipt if it doesn't exist,
       or update the existing receipt if it does.
-    */
+      */
 
       await pool.query(
         `
-      INSERT INTO message_receipts (
-        message_id,
-        user_id,
-        delivered_at,
-        read_at
-      )
-      VALUES (
-        $1,
-        $2,
-        CURRENT_TIMESTAMP,
-        CURRENT_TIMESTAMP
-      )
-
-      ON CONFLICT (message_id, user_id)
-
-      DO UPDATE SET
-        delivered_at = COALESCE(
-          message_receipts.delivered_at,
-          CURRENT_TIMESTAMP
-        ),
-
-        read_at = COALESCE(
-          message_receipts.read_at,
+        INSERT INTO message_receipts (
+          message_id,
+          user_id,
+          delivered_at,
+          read_at
+        )
+        VALUES (
+          $1,
+          $2,
+          CURRENT_TIMESTAMP,
           CURRENT_TIMESTAMP
         )
-      `,
+
+        ON CONFLICT (message_id, user_id)
+
+        DO UPDATE SET
+          delivered_at = COALESCE(
+            message_receipts.delivered_at,
+            CURRENT_TIMESTAMP
+          ),
+
+          read_at = COALESCE(
+            message_receipts.read_at,
+            CURRENT_TIMESTAMP
+          )
+        `,
         [messageId, userId],
       );
 
       /*
       Recalculate the complete receipt state
       and notify the sender immediately.
-    */
+      */
 
       await emitReceiptUpdate(messageId);
     } catch (error) {
@@ -484,21 +627,20 @@ MARK SINGLE MESSAGE AS READ
   });
 
   /*
-  ============================================================
-  SYNC RECEIPTS
-  ============================================================
-
+  ----------------------------------------------------------
+  SYNC ROOM RECEIPTS
+  ----------------------------------------------------------
   */
 
   socket.on("sync-room-receipts", async (roomId, callback) => {
     try {
       const isMember = await pool.query(
         `
-        SELECT id
-        FROM room_members
-        WHERE room_id = $1
-          AND user_id = $2
-        `,
+          SELECT id
+          FROM room_members
+          WHERE room_id = $1
+            AND user_id = $2
+          `,
         [roomId, userId],
       );
 
@@ -513,42 +655,42 @@ MARK SINGLE MESSAGE AS READ
 
       const result = await pool.query(
         `
-        SELECT
-          m.id AS message_id,
+          SELECT
+            m.id AS message_id,
 
-          COUNT(rm.user_id)::int AS total_recipients,
+            COUNT(rm.user_id)::int AS total_recipients,
 
-          COUNT(
-            CASE
-              WHEN mr.delivered_at IS NOT NULL
-              THEN 1
-            END
-          )::int AS delivered_count,
+            COUNT(
+              CASE
+                WHEN mr.delivered_at IS NOT NULL
+                THEN 1
+              END
+            )::int AS delivered_count,
 
-          COUNT(
-            CASE
-              WHEN mr.read_at IS NOT NULL
-              THEN 1
-            END
-          )::int AS read_count
+            COUNT(
+              CASE
+                WHEN mr.read_at IS NOT NULL
+                THEN 1
+              END
+            )::int AS read_count
 
-        FROM messages m
+          FROM messages m
 
-        JOIN room_members rm
-          ON rm.room_id = m.room_id
-         AND rm.user_id <> m.user_id
+          JOIN room_members rm
+            ON rm.room_id = m.room_id
+           AND rm.user_id <> m.user_id
 
-        LEFT JOIN message_receipts mr
-          ON mr.message_id = m.id
-         AND mr.user_id = rm.user_id
+          LEFT JOIN message_receipts mr
+            ON mr.message_id = m.id
+           AND mr.user_id = rm.user_id
 
-        WHERE m.room_id = $1
-          AND m.user_id = $2
+          WHERE m.room_id = $1
+            AND m.user_id = $2
 
-        GROUP BY m.id
+          GROUP BY m.id
 
-        ORDER BY m.created_at ASC
-        `,
+          ORDER BY m.created_at ASC
+          `,
         [roomId, userId],
       );
 
@@ -567,9 +709,15 @@ MARK SINGLE MESSAGE AS READ
   });
 
   /*
-  ============================================================
-  TYPING
-  ============================================================
+  ==========================================================
+  TYPING INDICATORS
+  ==========================================================
+  */
+
+  /*
+  ----------------------------------------------------------
+  START TYPING
+  ----------------------------------------------------------
   */
 
   socket.on("start-typing", ({ roomId }) => {
@@ -579,9 +727,226 @@ MARK SINGLE MESSAGE AS READ
     });
   });
 
+  /*
+  ----------------------------------------------------------
+  STOP TYPING
+  ----------------------------------------------------------
+  */
+
   socket.on("stop-typing", ({ roomId }) => {
     socket.to(roomId).emit("user-stopped-typing", {
       userId: socket.user._id,
+    });
+  });
+
+  /*
+  ==========================================================
+  WEBRTC SIGNALING
+  ==========================================================
+  */
+
+  /*
+  ----------------------------------------------------------
+  CALL USER
+  ----------------------------------------------------------
+  */
+
+  socket.on("call-user", ({ to, callType }) => {
+    console.log(
+      "call-user received. From:",
+      socket.user.username,
+      "Type:",
+      callType,
+    );
+
+    console.log("Calling user ID:", to);
+
+    const recipientSockets = onlineUsers.get(to);
+
+    if (!recipientSockets) {
+      console.log("Recipient is offline");
+
+      socket.emit("call-error", {
+        message: "User is offline",
+      });
+
+      return;
+    }
+
+    recipientSockets.forEach((socketId) => {
+      console.log("Sending incoming-call to:", socketId);
+
+      io.to(socketId).emit("incoming-call", {
+        from: socket.user._id,
+        username: socket.user.username,
+        callType,
+      });
+    });
+  });
+
+  /*
+  ----------------------------------------------------------
+  ACCEPT CALL
+  ----------------------------------------------------------
+  */
+
+  socket.on("accept-call", ({ to, callType }) => {
+    console.log("accept-call received from:", socket.user.username);
+
+    console.log("Sending acceptance to:", to);
+
+    activeCalls.set(socket.user._id, { peerId: to, callType });
+    activeCalls.set(to, { peerId: socket.user._id, callType });
+
+    const recipientSockets = onlineUsers.get(to);
+
+    if (!recipientSockets) {
+      console.log("Caller is offline");
+
+      socket.emit("call-error", {
+        message: "User is offline",
+      });
+
+      return;
+    }
+
+    recipientSockets.forEach((socketId) => {
+      console.log("Sending call-accepted to socket:", socketId);
+
+      io.to(socketId).emit("call-accepted", {
+        from: socket.user._id,
+        username: socket.user.username,
+      });
+    });
+  });
+
+  const cleanupCall = (u1, u2) => {
+    const c1 = activeCalls.get(u1);
+    if (c1 && c1.timeoutId) clearTimeout(c1.timeoutId);
+    const c2 = activeCalls.get(u2);
+    if (c2 && c2.timeoutId) clearTimeout(c2.timeoutId);
+    activeCalls.delete(u1);
+    activeCalls.delete(u2);
+  };
+
+  socket.on("end-call", ({ to }) => {
+    cleanupCall(socket.user._id, to);
+    const recipientSockets = onlineUsers.get(to);
+
+    if (!recipientSockets) {
+      return;
+    }
+
+    recipientSockets.forEach((socketId) => {
+      io.to(socketId).emit("call-ended");
+    });
+  });
+
+  /*
+  ----------------------------------------------------------
+  ACCEPT CALL
+  ----------------------------------------------------------
+  */
+
+  socket.on("reject-call", ({ to }) => {
+    console.log("reject-call received from:", socket.user.username);
+    cleanupCall(socket.user._id, to);
+
+    const recipientSockets = onlineUsers.get(to);
+
+    if (!recipientSockets) {
+      return;
+    }
+
+    recipientSockets.forEach((socketId) => {
+      io.to(socketId).emit("call-rejected", {
+        from: socket.user._id,
+        username: socket.user.username,
+      });
+    });
+  });
+
+  /*
+  ----------------------------------------------------------
+  WEBRTC OFFER
+  ----------------------------------------------------------
+  */
+
+  socket.on("webrtc-offer", ({ to, offer, callType, isRecovery }) => {
+    console.log("WebRTC offer received from:", socket.user.username);
+
+    if (callType) {
+      const c1 = activeCalls.get(socket.user._id);
+      if (c1) c1.callType = callType;
+      const c2 = activeCalls.get(to);
+      if (c2) c2.callType = callType;
+    }
+
+    console.log("Sending offer to:", to);
+
+    const recipientSockets = onlineUsers.get(to);
+
+    if (!recipientSockets) {
+      console.log("User is offline");
+
+      socket.emit("call-error", {
+        message: "User is offline",
+      });
+
+      return;
+    }
+
+    recipientSockets.forEach((socketId) => {
+      io.to(socketId).emit("webrtc-offer", {
+        from: socket.user._id,
+        username: socket.user.username,
+        offer,
+        isRecovery,
+      });
+    });
+  });
+
+  socket.on("webrtc-answer", ({ to, answer }) => {
+    console.log("WebRTC answer received from:", socket.user.username);
+
+    console.log("Sending answer to:", to);
+
+    const recipientSockets = onlineUsers.get(to);
+
+    if (!recipientSockets) {
+      console.log("User is offline");
+
+      socket.emit("call-error", {
+        message: "User is offline",
+      });
+
+      return;
+    }
+
+    recipientSockets.forEach((socketId) => {
+      io.to(socketId).emit("webrtc-answer", {
+        from: socket.user._id,
+        username: socket.user.username,
+        answer,
+      });
+    });
+  });
+
+  socket.on("ice-candidate", ({ to, candidate }) => {
+    console.log("ICE candidate received from:", socket.user.username);
+
+    const recipientSockets = onlineUsers.get(to);
+
+    if (!recipientSockets) {
+      console.log("User is offline");
+      return;
+    }
+
+    recipientSockets.forEach((socketId) => {
+      io.to(socketId).emit("ice-candidate", {
+        from: socket.user._id,
+        candidate,
+      });
     });
   });
 });
@@ -597,6 +962,12 @@ async function testDatabase() {
 
   console.log(result);
 }
+
+/*
+============================================================
+START SERVER
+============================================================
+*/
 
 testDatabase()
   .then(() => {

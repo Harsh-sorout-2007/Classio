@@ -33,23 +33,47 @@ function CreateRoomModal({ onClose, onRoomCreated }) {
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div 
-        style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 9999,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: "rgba(0,0,0,0.6)",
+          backdropFilter: "blur(4px)",
+        }}
         onClick={onClose}
       />
-      
-      <div style={{
-        position: "relative",
-        background: "var(--color-bg-elevated)",
-        border: "1px solid var(--color-border)",
-        borderRadius: 24,
-        padding: 40,
-        width: "100%",
-        maxWidth: 480,
-        boxShadow: "0 24px 64px rgba(0,0,0,0.4)"
-      }}>
-        <h2 style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", marginBottom: 8, color: "var(--color-text-primary)" }}>
+
+      <div
+        style={{
+          position: "relative",
+          background: "var(--color-bg-elevated)",
+          border: "1px solid var(--color-border)",
+          borderRadius: 24,
+          padding: 40,
+          width: "100%",
+          maxWidth: 480,
+          boxShadow: "0 24px 64px rgba(0,0,0,0.4)",
+        }}
+      >
+        <h2
+          style={{
+            fontSize: 24,
+            fontWeight: 700,
+            letterSpacing: "-0.02em",
+            marginBottom: 8,
+            color: "var(--color-text-primary)",
+          }}
+        >
           CREATE A NEW ROOM
         </h2>
         <p className="text-muted" style={{ marginBottom: 32, fontSize: 15 }}>
@@ -57,7 +81,16 @@ function CreateRoomModal({ onClose, onRoomCreated }) {
         </p>
 
         <div style={{ marginBottom: 24 }}>
-          <label style={{ fontSize: 13, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-text-muted)" }}>Room name</label>
+          <label
+            style={{
+              fontSize: 13,
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              color: "var(--color-text-muted)",
+            }}
+          >
+            Room name
+          </label>
           <input
             type="text"
             placeholder="e.g. Design Team Sync"
@@ -69,7 +102,16 @@ function CreateRoomModal({ onClose, onRoomCreated }) {
         </div>
 
         <div style={{ marginBottom: 32 }}>
-          <label style={{ fontSize: 13, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-text-muted)" }}>Description</label>
+          <label
+            style={{
+              fontSize: 13,
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              color: "var(--color-text-muted)",
+            }}
+          >
+            Description
+          </label>
           <textarea
             placeholder="What is this room about?"
             value={roomDescription}
@@ -80,16 +122,25 @@ function CreateRoomModal({ onClose, onRoomCreated }) {
         </div>
 
         <div style={{ marginBottom: 40 }}>
-          <label style={{ fontSize: 13, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-text-muted)" }}>Privacy</label>
+          <label
+            style={{
+              fontSize: 13,
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              color: "var(--color-text-muted)",
+            }}
+          >
+            Privacy
+          </label>
           <div style={{ display: "flex", gap: 12 }}>
-            <button 
+            <button
               className={!isPrivate ? "primary" : "secondary"}
               style={{ flex: 1, padding: "12px" }}
               onClick={() => setIsPrivate(false)}
             >
               Public
             </button>
-            <button 
+            <button
               className={isPrivate ? "primary" : "secondary"}
               style={{ flex: 1, padding: "12px" }}
               onClick={() => setIsPrivate(true)}
@@ -100,10 +151,19 @@ function CreateRoomModal({ onClose, onRoomCreated }) {
         </div>
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
-          <button className="ghost" onClick={onClose} style={{ padding: "10px 24px" }}>
+          <button
+            className="ghost"
+            onClick={onClose}
+            style={{ padding: "10px 24px" }}
+          >
             Cancel
           </button>
-          <button className="primary" onClick={createRoom} style={{ padding: "10px 24px" }} disabled={!roomName.trim()}>
+          <button
+            className="primary"
+            onClick={createRoom}
+            style={{ padding: "10px 24px" }}
+            disabled={!roomName.trim()}
+          >
             Create room
           </button>
         </div>
