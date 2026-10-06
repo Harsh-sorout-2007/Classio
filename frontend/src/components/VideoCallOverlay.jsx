@@ -1,5 +1,4 @@
 import React, { useRef, useEffect } from "react";
-import { useCallContext } from "../contexts/CallContext";
 
 function VideoCallOverlay({
   callState,
@@ -23,6 +22,7 @@ function VideoCallOverlay({
   setIsMinimized,
   remoteStreamRef,
   localStreamRef,
+  remoteVideoEnabled,
 }) {
   const containerRef = useRef(null);
 
@@ -33,7 +33,9 @@ function VideoCallOverlay({
       if (localVideoRef.current.srcObject !== localStreamRef.current) {
         localVideoRef.current.srcObject = localStreamRef.current;
       }
-      localVideoRef.current.play().catch(() => {});
+      if (localVideoRef.current.paused) {
+        localVideoRef.current.play().catch(() => {});
+      }
     }
 
     // Remote video
@@ -41,7 +43,9 @@ function VideoCallOverlay({
       if (remoteVideoRef.current.srcObject !== remoteStreamRef.current) {
         remoteVideoRef.current.srcObject = remoteStreamRef.current;
       }
-      remoteVideoRef.current.play().catch(() => {});
+      if (remoteVideoRef.current.paused) {
+        remoteVideoRef.current.play().catch(() => {});
+      }
     }
 
     // Remote audio
@@ -49,9 +53,11 @@ function VideoCallOverlay({
       if (remoteAudioRef.current.srcObject !== remoteStreamRef.current) {
         remoteAudioRef.current.srcObject = remoteStreamRef.current;
       }
-      remoteAudioRef.current.play().catch(() => {});
+      if (remoteAudioRef.current.paused) {
+        remoteAudioRef.current.play().catch(() => {});
+      }
     }
-  }, [callState, callType, localStreamRef, remoteStreamRef]);
+  });
 
   const getUsername = () => {
     if (incomingCall) return incomingCall.username;
@@ -267,7 +273,7 @@ function VideoCallOverlay({
           playsInline
           muted
           style={{
-            display: callType === "video" ? "block" : "none",
+            display: callType === "video" && remoteVideoEnabled ? "block" : "none",
             width: "100%",
             height: "100%",
             objectFit: "contain",
@@ -276,7 +282,7 @@ function VideoCallOverlay({
         />
 
         {/* Audio / calling placeholder */}
-        {(callType === "audio" || callState !== "connected") && (
+        {(callType === "audio" || callState !== "connected" || (callType === "video" && !remoteVideoEnabled)) && (
           <div
             style={{
               position: "absolute",

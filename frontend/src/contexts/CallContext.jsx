@@ -21,6 +21,7 @@ export const CallProvider = ({ children }) => {
   const [callType, setCallType] = useState(null);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [remoteUser, setRemoteUser] = useState(null);
+  const [remoteVideoEnabled, setRemoteVideoEnabled] = useState(true);
 
   const peerConnection = useRef(null);
   const currentCallUser = useRef(null);
@@ -88,8 +89,8 @@ export const CallProvider = ({ children }) => {
 
       let remoteStreamVar = event.streams?.[0];
       if (!remoteStreamVar) {
-        if (remoteVideo.current?.srcObject instanceof MediaStream) {
-          remoteStreamVar = remoteVideo.current.srcObject;
+        if (remoteStream.current instanceof MediaStream) {
+          remoteStreamVar = remoteStream.current;
           remoteStreamVar.addTrack(event.track);
         } else {
           remoteStreamVar = new MediaStream([event.track]);
@@ -152,6 +153,16 @@ export const CallProvider = ({ children }) => {
         video: type === "video",
       });
 
+      if (!currentCallUser.current && !remoteUserId.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+
+      // Prevent leak if startMedia was called concurrently
+      if (localStream.current) {
+        localStream.current.getTracks().forEach((track) => track.stop());
+      }
+
       localStream.current = stream;
 
       if (localVideo.current) {
@@ -191,7 +202,24 @@ export const CallProvider = ({ children }) => {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: true,
         });
+        
+        if (!currentCallUser.current && !remoteUserId.current) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        
+        // Prevent leak if toggleVideo was called concurrently
+        if (localStream.current && localStream.current.getVideoTracks().length > 0) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+
         const videoTrack = stream.getVideoTracks()[0];
+        // Stop any additional tracks (like audio) if browser erroneously provides them
+        stream.getTracks().forEach((track) => {
+          if (track !== videoTrack) track.stop();
+        });
+        
         localStream.current.addTrack(videoTrack);
 
         if (localVideo.current) {
@@ -212,6 +240,11 @@ export const CallProvider = ({ children }) => {
         setCallType("video");
         setIsVideoOff(false);
 
+        socket.emit("camera-state", {
+          to: remoteUserId.current || currentCallUser.current,
+          enabled: true,
+        });
+
         socket.emit("webrtc-offer", {
           to: remoteUserId.current,
           offer,
@@ -228,6 +261,11 @@ export const CallProvider = ({ children }) => {
       if (videoTrack) {
         videoTrack.enabled = !videoTrack.enabled;
         setIsVideoOff(!videoTrack.enabled);
+        
+        socket.emit("camera-state", {
+          to: remoteUserId.current || currentCallUser.current,
+          enabled: videoTrack.enabled,
+        });
       }
     }
   };
@@ -364,6 +402,7 @@ export const CallProvider = ({ children }) => {
     setIsCallMinimized(false);
     setIsScreenSharing(false);
     setRemoteUser(null);
+    setRemoteVideoEnabled(true);
 
     if (targetUser) {
       socket.emit("end-call", { to: targetUser });
@@ -387,7 +426,6 @@ export const CallProvider = ({ children }) => {
     if (remoteAudio.current) remoteAudio.current.srcObject = null;
     if (remoteVideo.current) remoteVideo.current.srcObject = null;
     remoteStream.current = null;
-    remoteStream.current = null;
     pendingIceCandidates.current = [];
     remoteUserId.current = null;
     currentCallUser.current = null;
@@ -409,6 +447,7 @@ export const CallProvider = ({ children }) => {
         setRemoteUser({ username });
         remoteUserId.current = from;
         currentCallUser.current = from;
+        setRemoteVideoEnabled(true);
         const pc = peerConnection.current || createPeerConnection();
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
@@ -466,6 +505,7 @@ export const CallProvider = ({ children }) => {
         setRemoteUser({ username });
         remoteUserId.current = from;
         currentCallUser.current = from;
+        setRemoteVideoEnabled(true);
         let pc = peerConnection.current;
         if (pc && isRecovery) {
           cleanupPeerConnection();
@@ -573,6 +613,10 @@ export const CallProvider = ({ children }) => {
       handleCallRejected({});
     };
 
+    const handleCameraState = ({ enabled }) => {
+      setRemoteVideoEnabled(enabled);
+    };
+
     socket.on("incoming-call", handleIncomingCall);
     socket.on("call-accepted", handleCallAccepted);
     socket.on("call-rejected", handleCallRejected);
@@ -582,6 +626,7 @@ export const CallProvider = ({ children }) => {
     socket.on("resume-call", handleResumeCall);
     socket.on("ice-candidate", handleICECandidate);
     socket.on("call-ended", handleCallEnded);
+    socket.on("camera-state", handleCameraState);
 
     return () => {
       socket.off("incoming-call", handleIncomingCall);
@@ -593,6 +638,7 @@ export const CallProvider = ({ children }) => {
       socket.off("resume-call", handleResumeCall);
       socket.off("ice-candidate", handleICECandidate);
       socket.off("call-ended", handleCallEnded);
+      socket.off("camera-state", handleCameraState);
     };
   }, []);
 
@@ -640,6 +686,7 @@ export const CallProvider = ({ children }) => {
               to: incomingCall.from,
               callType: incomingCall.callType,
             });
+            setRemoteUser({ username: incomingCall.username });
             setIncomingCall(null);
           }
         }}
@@ -655,6 +702,7 @@ export const CallProvider = ({ children }) => {
         remoteUser={getCallRemoteUser()}
         isMinimized={isCallMinimized}
         setIsMinimized={setIsCallMinimized}
+        remoteVideoEnabled={remoteVideoEnabled}
       />
     </CallContext.Provider>
   );

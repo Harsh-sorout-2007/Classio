@@ -969,6 +969,18 @@ io.on("connection", (socket) => {
       });
     });
   });
+
+  socket.on("camera-state", ({ to, enabled }) => {
+    const recipientSockets = onlineUsers.get(to);
+    if (!recipientSockets) return;
+
+    recipientSockets.forEach((socketId) => {
+      io.to(socketId).emit("camera-state", {
+        from: socket.user._id,
+        enabled,
+      });
+    });
+  });
 });
 
 /*
