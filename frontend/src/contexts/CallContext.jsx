@@ -85,16 +85,28 @@ export const CallProvider = ({ children }) => {
         callTypeRef.current = "video";
       }
 
-      const remoteStream = event.streams[0];
-      if (!remoteStream) return;
+      let remoteStream = event.streams?.[0];
+      if (!remoteStream) {
+        if (remoteVideo.current?.srcObject instanceof MediaStream) {
+          remoteStream = remoteVideo.current.srcObject;
+          remoteStream.addTrack(event.track);
+        } else {
+          remoteStream = new MediaStream([event.track]);
+        }
+      }
 
       if (remoteAudio.current) {
         remoteAudio.current.srcObject = remoteStream;
-        remoteAudio.current.play().catch(console.error);
+        remoteAudio.current.play().catch((error) => {
+          console.warn("Remote audio autoplay blocked:", error);
+        });
       }
 
       if (remoteVideo.current) {
         remoteVideo.current.srcObject = remoteStream;
+        remoteVideo.current.play().catch((error) => {
+          console.warn("Remote video autoplay blocked:", error);
+        });
       }
     };
 
@@ -141,6 +153,9 @@ export const CallProvider = ({ children }) => {
 
       if (localVideo.current) {
         localVideo.current.srcObject = stream;
+        localVideo.current.play().catch((error) => {
+          console.warn("Local video autoplay blocked:", error);
+        });
       }
 
       const pc = createPeerConnection();
@@ -178,6 +193,9 @@ export const CallProvider = ({ children }) => {
 
         if (localVideo.current) {
           localVideo.current.srcObject = localStream.current;
+          localVideo.current.play().catch((error) => {
+            console.warn("Local video autoplay blocked:", error);
+          });
         }
 
         const pc = peerConnection.current;
@@ -236,6 +254,7 @@ export const CallProvider = ({ children }) => {
       }
       if (localVideo.current && localStream.current) {
         localVideo.current.srcObject = localStream.current;
+        localVideo.current.play().catch(() => {});
       }
       setCallType("video");
       callTypeRef.current = "video";
@@ -256,6 +275,7 @@ export const CallProvider = ({ children }) => {
       }
       if (localVideo.current && localStream.current) {
         localVideo.current.srcObject = localStream.current;
+        localVideo.current.play().catch(() => {});
       }
       setCallType("audio");
       callTypeRef.current = "audio";
@@ -314,6 +334,7 @@ export const CallProvider = ({ children }) => {
 
       if (localVideo.current) {
         localVideo.current.srcObject = stream;
+        localVideo.current.play().catch(() => {});
       }
 
       setCallType("video");
@@ -380,6 +401,9 @@ export const CallProvider = ({ children }) => {
 
     const handleCallAccepted = async ({ from, username }) => {
       try {
+        setRemoteUser({ username });
+        remoteUserId.current = from;
+        currentCallUser.current = from;
         const pc = peerConnection.current || createPeerConnection();
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
@@ -434,6 +458,9 @@ export const CallProvider = ({ children }) => {
 
     const handleWebRTCOffer = async ({ from, username, offer, isRecovery }) => {
       try {
+        setRemoteUser({ username });
+        remoteUserId.current = from;
+        currentCallUser.current = from;
         let pc = peerConnection.current;
         if (pc && isRecovery) {
           cleanupPeerConnection();

@@ -639,7 +639,7 @@ button.ghost:hover {
 
 .composer-wrapper {
   padding: var(--space-4);
-  background: var(--color-bg-base);
+  background: transparent;
 }
 
 .composer-box {
