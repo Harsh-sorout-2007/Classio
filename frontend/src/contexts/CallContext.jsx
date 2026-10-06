@@ -606,6 +606,7 @@ export const CallProvider = ({ children }) => {
               to: incomingCall.from,
               callType: incomingCall.callType,
             });
+            setIncomingCall(null);
           }
         }}
         rejectCall={() => {

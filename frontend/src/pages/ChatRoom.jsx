@@ -1359,16 +1359,7 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
                         <button
                           className="icon-btn"
                           title={`Audio call ${member.username}`}
-                          onClick={async () => {
-                            currentCallUser.current = member.id;
-                            remoteUserId.current = member.id;
-                            setCallState("calling");
-                            await startMedia("audio");
-                            socket.emit("call-user", {
-                              to: member.id,
-                              callType: "audio",
-                            });
-                          }}
+                          onClick={() => initiateCall(member.id, member.username, "audio")}
                         >
                           <svg
                             width="18"
@@ -1386,16 +1377,7 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
                         <button
                           className="icon-btn"
                           title={`Video call ${member.username}`}
-                          onClick={async () => {
-                            currentCallUser.current = member.id;
-                            remoteUserId.current = member.id;
-                            setCallState("calling");
-                            await startMedia("video");
-                            socket.emit("call-user", {
-                              to: member.id,
-                              callType: "video",
-                            });
-                          }}
+                          onClick={() => initiateCall(member.id, member.username, "video")}
                         >
                           <svg
                             width="18"
