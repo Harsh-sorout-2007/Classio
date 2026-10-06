@@ -29,6 +29,7 @@ export const CallProvider = ({ children }) => {
   const localVideo = useRef(null);
   const remoteUserId = useRef(null);
   const remoteVideo = useRef(null);
+  const remoteStream = useRef(null);
 
   const screenStream = useRef(null);
   const cameraTrack = useRef(null);
@@ -85,25 +86,27 @@ export const CallProvider = ({ children }) => {
         callTypeRef.current = "video";
       }
 
-      let remoteStream = event.streams?.[0];
-      if (!remoteStream) {
+      let remoteStreamVar = event.streams?.[0];
+      if (!remoteStreamVar) {
         if (remoteVideo.current?.srcObject instanceof MediaStream) {
-          remoteStream = remoteVideo.current.srcObject;
-          remoteStream.addTrack(event.track);
+          remoteStreamVar = remoteVideo.current.srcObject;
+          remoteStreamVar.addTrack(event.track);
         } else {
-          remoteStream = new MediaStream([event.track]);
+          remoteStreamVar = new MediaStream([event.track]);
         }
       }
 
+      remoteStream.current = remoteStreamVar;
+
       if (remoteAudio.current) {
-        remoteAudio.current.srcObject = remoteStream;
+        remoteAudio.current.srcObject = remoteStream.current;
         remoteAudio.current.play().catch((error) => {
           console.warn("Remote audio autoplay blocked:", error);
         });
       }
 
       if (remoteVideo.current) {
-        remoteVideo.current.srcObject = remoteStream;
+        remoteVideo.current.srcObject = remoteStream.current;
         remoteVideo.current.play().catch((error) => {
           console.warn("Remote video autoplay blocked:", error);
         });
@@ -383,6 +386,8 @@ export const CallProvider = ({ children }) => {
     if (localVideo.current) localVideo.current.srcObject = null;
     if (remoteAudio.current) remoteAudio.current.srcObject = null;
     if (remoteVideo.current) remoteVideo.current.srcObject = null;
+    remoteStream.current = null;
+    remoteStream.current = null;
     pendingIceCandidates.current = [];
     remoteUserId.current = null;
     currentCallUser.current = null;
@@ -616,7 +621,9 @@ export const CallProvider = ({ children }) => {
         isMuted={isMuted}
         isVideoOff={isVideoOff}
         localVideoRef={localVideo}
+        localStreamRef={localStream}
         remoteVideoRef={remoteVideo}
+        remoteStreamRef={remoteStream}
         remoteAudioRef={remoteAudio}
         toggleMute={toggleMute}
         toggleVideo={toggleVideo}
