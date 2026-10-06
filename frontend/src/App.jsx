@@ -12,6 +12,9 @@ import Messages from "./pages/Messages";
 import RoomsPage from "./pages/Rooms";
 import SearchPage from "./pages/Search";
 
+// Contexts
+import { CallProvider } from "./contexts/CallContext";
+
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
@@ -149,39 +152,43 @@ function App() {
   };
 
   return (
-    <AppShell
-      currentTab={currentTab}
-      onTabChange={setCurrentTab}
-      currentUser={currentUser}
-      onLogout={handleLogout}
-      onCreateRoomClick={() => setIsCreateModalOpen(true)}
-    >
-      {currentTab === "messages" && (
-        <Messages
-          currentUser={currentUser}
-          onlineUsers={onlineUsers}
-          selectedRoomId={selectedRoomId}
-          onRoomSelect={handleRoomSelect}
-          onLogout={handleLogout}
-        />
-      )}
+    <CallProvider>
+      <AppShell
+        currentTab={currentTab}
+        onTabChange={setCurrentTab}
+        currentUser={currentUser}
+        onLogout={handleLogout}
+        onCreateRoomClick={() => setIsCreateModalOpen(true)}
+      >
+        {currentTab === "messages" && (
+          <Messages
+            currentUser={currentUser}
+            onlineUsers={onlineUsers}
+            selectedRoomId={selectedRoomId}
+            onRoomSelect={handleRoomSelect}
+            onLogout={handleLogout}
+          />
+        )}
 
-      {currentTab === "rooms" && <RoomsPage onRoomSelect={handleRoomSelect} />}
+        {currentTab === "rooms" && (
+          <RoomsPage onRoomSelect={handleRoomSelect} />
+        )}
 
-      {currentTab === "search" && (
-        <SearchPage onRoomSelect={handleRoomSelect} />
-      )}
+        {currentTab === "search" && (
+          <SearchPage onRoomSelect={handleRoomSelect} />
+        )}
 
-      {isCreateModalOpen && (
-        <CreateRoomModal
-          onClose={() => setIsCreateModalOpen(false)}
-          onRoomCreated={(room) => {
-            setIsCreateModalOpen(false);
-            handleRoomSelect(room.id);
-          }}
-        />
-      )}
-    </AppShell>
+        {isCreateModalOpen && (
+          <CreateRoomModal
+            onClose={() => setIsCreateModalOpen(false)}
+            onRoomCreated={(room) => {
+              setIsCreateModalOpen(false);
+              handleRoomSelect(room.id);
+            }}
+          />
+        )}
+      </AppShell>
+    </CallProvider>
   );
 }
 

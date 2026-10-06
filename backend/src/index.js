@@ -761,10 +761,25 @@ io.on("connection", (socket) => {
 
     console.log("Calling user ID:", to);
 
+    if (activeCalls.has(to) || activeCalls.has(socket.user._id)) {
+      socket.emit("call-error", {
+        message: "User is busy",
+      });
+      socket.emit("call-rejected", {
+        username: "System",
+      });
+      return;
+    }
+
+    activeCalls.set(socket.user._id, { peerId: to, status: "ringing", callType });
+    activeCalls.set(to, { peerId: socket.user._id, status: "ringing", callType });
+
     const recipientSockets = onlineUsers.get(to);
 
     if (!recipientSockets) {
       console.log("Recipient is offline");
+      activeCalls.delete(socket.user._id);
+      activeCalls.delete(to);
 
       socket.emit("call-error", {
         message: "User is offline",
@@ -795,8 +810,13 @@ io.on("connection", (socket) => {
 
     console.log("Sending acceptance to:", to);
 
-    activeCalls.set(socket.user._id, { peerId: to, callType });
-    activeCalls.set(to, { peerId: socket.user._id, callType });
+    const c1 = activeCalls.get(socket.user._id);
+    if (c1) { c1.status = "in-call"; c1.callType = callType; }
+    else activeCalls.set(socket.user._id, { peerId: to, status: "in-call", callType });
+
+    const c2 = activeCalls.get(to);
+    if (c2) { c2.status = "in-call"; c2.callType = callType; }
+    else activeCalls.set(to, { peerId: socket.user._id, status: "in-call", callType });
 
     const recipientSockets = onlineUsers.get(to);
 
