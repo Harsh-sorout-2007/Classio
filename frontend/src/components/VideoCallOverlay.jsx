@@ -336,7 +336,7 @@ function VideoCallOverlay({
           style={{
             width: "100%",
             height: "100%",
-            objectFit: "cover",
+            objectFit: "contain",
             display:
               callState === "connected" && callType === "video"
                 ? "block"
@@ -390,7 +390,7 @@ function VideoCallOverlay({
         <div
           style={{
             position: "absolute",
-            bottom: "120px",
+            bottom: "clamp(130px, 16vh, 180px)",
             right: "24px",
             width: "240px",
             aspectRatio: "4/3",
