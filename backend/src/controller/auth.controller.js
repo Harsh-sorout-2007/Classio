@@ -6,6 +6,14 @@ import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
 import { pool } from "../db/database.js";
 import jwt from "jsonwebtoken";
 
+const getCookieOptions = () => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite:
+    process.env.COOKIE_SAME_SITE ||
+    (process.env.NODE_ENV === "production" ? "none" : "lax"),
+});
+
 const registerUser = asyncHandler(async (req, res) => {
   const { username, email, password } = req.body;
 
@@ -81,12 +89,8 @@ const loginUser = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .cookie("accessToken", accessToken, {
-      httpOnly: true,
-    })
-    .cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-    })
+    .cookie("accessToken", accessToken, getCookieOptions())
+    .cookie("refreshToken", refreshToken, getCookieOptions())
     .json(
       new ApiResponse(
         200,
@@ -156,9 +160,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .cookie("accessToken", newAccessToken, {
-      httpOnly: true,
-    })
+    .cookie("accessToken", newAccessToken, getCookieOptions())
     .json(
       new ApiResponse(
         200,
@@ -191,8 +193,8 @@ const logoutUser = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .clearCookie("accessToken")
-    .clearCookie("refreshToken")
+    .clearCookie("accessToken", getCookieOptions())
+    .clearCookie("refreshToken", getCookieOptions())
     .json(new ApiResponse(200, null, "User logged out successfully"));
 });
 

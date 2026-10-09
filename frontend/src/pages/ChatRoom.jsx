@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { useCallContext } from "../contexts/CallContext";
 import socket from "../services/socket";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
   const { initiateCall, callState } = useCallContext();
   /*
@@ -85,7 +87,7 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/v1/room/${roomId}/messages`,
+        `${API_URL}/api/v1/room/${roomId}/messages`,
         {
           method: "GET",
           credentials: "include",
@@ -163,7 +165,7 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/v1/room/${roomId}/members`,
+        `${API_URL}/api/v1/room/${roomId}/members`,
         {
           method: "GET",
           credentials: "include",
@@ -191,7 +193,7 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
   useEffect(() => {
     const fetchRooms = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/v1/room/", {
+        const response = await fetch(`${API_URL}/api/v1/room/`, {
           method: "GET",
           credentials: "include",
         });
@@ -221,7 +223,7 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
     const getJoinRequests = async () => {
       try {
         const response = await fetch(
-          `http://localhost:5000/api/v1/room/${roomId}/join-requests`,
+          `${API_URL}/api/v1/room/${roomId}/join-requests`,
           {
             method: "GET",
             credentials: "include",
@@ -245,7 +247,7 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
     const getRoomDetails = async () => {
       try {
         const response = await fetch(
-          `http://localhost:5000/api/v1/room/${roomId}`,
+          `${API_URL}/api/v1/room/${roomId}`,
           {
             method: "GET",
             credentials: "include",
@@ -469,7 +471,7 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
   const handleRequestAction = async (requestId, action) => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/v1/room/${roomId}/join-requests/${requestId}/${action}`,
+        `${API_URL}/api/v1/room/${roomId}/join-requests/${requestId}/${action}`,
         {
           method: "POST",
           credentials: "include",
@@ -501,7 +503,7 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
   const leaveRoom = async () => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/v1/room/${roomId}/leave`,
+        `${API_URL}/api/v1/room/${roomId}/leave`,
         {
           method: "POST",
           credentials: "include",
@@ -529,7 +531,7 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/v1/room/${roomId}`,
+        `${API_URL}/api/v1/room/${roomId}`,
         {
           method: "DELETE",
           credentials: "include",
@@ -553,7 +555,7 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
   const submitEditRoom = async () => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/v1/room/${roomId}`,
+        `${API_URL}/api/v1/room/${roomId}`,
         {
           method: "PATCH",
           headers: {
@@ -592,7 +594,7 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
   const submitEditMessage = async (messageId) => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/v1/room/${roomId}/messages/${messageId}`,
+        `${API_URL}/api/v1/room/${roomId}/messages/${messageId}`,
         {
           method: "PATCH",
           headers: {
@@ -637,7 +639,7 @@ function ChatRoom({ roomId, onBack, onLogout, currentUser, onlineUsers }) {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/v1/room/${roomId}/messages/${messageId}`,
+        `${API_URL}/api/v1/room/${roomId}/messages/${messageId}`,
         {
           method: "DELETE",
           credentials: "include",

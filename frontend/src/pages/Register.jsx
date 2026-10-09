@@ -1,6 +1,8 @@
 import { useState } from "react";
 import logo from "../assets/logo/classio-logo.png";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 function Register({ onGoToLogin }) {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -29,7 +31,7 @@ function Register({ onGoToLogin }) {
 
     try {
       const response = await fetch(
-        "http://localhost:5000/api/v1/auth/register",
+        `${API_URL}/api/v1/auth/register`,
         {
           method: "POST",
           headers: {

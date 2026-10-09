@@ -40,6 +40,26 @@ export const CallProvider = ({ children }) => {
   const pendingIceCandidates = useRef([]);
   const hasRecovered = useRef(false);
 
+  const [iceServers, setIceServers] = useState([{ urls: "stun:stun.l.google.com:19302" }]);
+
+  useEffect(() => {
+    const fetchIceServers = async () => {
+      try {
+        const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+        const response = await fetch(`${API_URL}/api/v1/room/ice-servers`, {
+          credentials: "include",
+        });
+        const data = await response.json();
+        if (data.success && data.data && data.data.iceServers) {
+          setIceServers(data.data.iceServers);
+        }
+      } catch (err) {
+        console.error("Failed to fetch ICE servers:", err);
+      }
+    };
+    fetchIceServers();
+  }, []);
+
   const cleanupPeerConnection = () => {
     if (peerConnection.current) {
       peerConnection.current.onconnectionstatechange = null;
@@ -53,7 +73,7 @@ export const CallProvider = ({ children }) => {
 
   const createPeerConnection = () => {
     const pc = new RTCPeerConnection({
-      iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+      iceServers: iceServers,
     });
 
     pc.onconnectionstatechange = () => {

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import ChatRoom from "./ChatRoom";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 function Messages({
   currentUser,
   onlineUsers,
@@ -14,7 +16,7 @@ function Messages({
 
   const getRooms = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/v1/room/", {
+      const response = await fetch(`${API_URL}/api/v1/room/`, {
         method: "GET",
         credentials: "include",
       });

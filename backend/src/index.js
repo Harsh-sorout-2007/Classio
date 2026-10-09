@@ -1,5 +1,21 @@
 import "dotenv/config";
 
+if (process.env.NODE_ENV === "production") {
+  const requiredEnvs = [
+    "DATABASE_URL",
+    "ACCESS_TOKEN_SECRET",
+    "REFRESH_TOKEN_SECRET",
+    "CLIENT_URL",
+  ];
+  const missing = requiredEnvs.filter((env) => !process.env[env]);
+  if (missing.length > 0) {
+    console.error(
+      `FATAL ERROR: Missing required production environment variables: ${missing.join(", ")}`,
+    );
+    process.exit(1);
+  }
+}
+
 import { pool } from "./db/database.js";
 import { app } from "./app.js";
 
@@ -394,22 +410,32 @@ io.on("connection", (socket) => {
       --------------------------------------------------------
       */
 
+      const onlineRecipientIds = [];
+      const onlineRecipientSockets = [];
+
       for (const recipient of recipients.rows) {
         const recipientId = recipient.user_id;
-
         const recipientSockets = onlineUsers.get(recipientId);
 
-        if (!recipientSockets) {
-          // User is offline.
-          // No delivered_at yet.
-          continue;
+        if (recipientSockets) {
+          onlineRecipientIds.push(recipientId);
+          onlineRecipientSockets.push(recipientSockets);
         }
+      }
 
+      if (onlineRecipientIds.length > 0) {
         /*
         ------------------------------------------------------
-        CREATE / UPDATE DELIVERY RECEIPT
+        CREATE / UPDATE DELIVERY RECEIPTS (BATCH)
         ------------------------------------------------------
         */
+        const values = [];
+        const params = [savedMessage.id];
+
+        onlineRecipientIds.forEach((recipientId, index) => {
+          params.push(recipientId);
+          values.push(`($1, $${index + 2}, CURRENT_TIMESTAMP)`);
+        });
 
         await pool.query(
           `
@@ -418,21 +444,15 @@ io.on("connection", (socket) => {
             user_id,
             delivered_at
           )
-          VALUES (
-            $1,
-            $2,
-            CURRENT_TIMESTAMP
-          )
-
+          VALUES ${values.join(", ")}
           ON CONFLICT (message_id, user_id)
-
           DO UPDATE SET
             delivered_at = COALESCE(
               message_receipts.delivered_at,
               CURRENT_TIMESTAMP
             )
           `,
-          [savedMessage.id, recipientId],
+          params,
         );
 
         /*
@@ -440,17 +460,17 @@ io.on("connection", (socket) => {
         SEND MESSAGE TO RECIPIENT SOCKETS
         ------------------------------------------------------
         */
-
-        recipientSockets.forEach((socketId) => {
-          io.to(socketId).emit("new-message", newMessage);
+        onlineRecipientSockets.forEach((sockets) => {
+          sockets.forEach((socketId) => {
+            io.to(socketId).emit("new-message", newMessage);
+          });
         });
 
         /*
         ------------------------------------------------------
-        UPDATE SENDER RECEIPT STATUS
+        UPDATE SENDER RECEIPT STATUS ONCE
         ------------------------------------------------------
         */
-
         await emitReceiptUpdate(savedMessage.id);
       }
     } catch (error) {
@@ -771,8 +791,16 @@ io.on("connection", (socket) => {
       return;
     }
 
-    activeCalls.set(socket.user._id, { peerId: to, status: "ringing", callType });
-    activeCalls.set(to, { peerId: socket.user._id, status: "ringing", callType });
+    activeCalls.set(socket.user._id, {
+      peerId: to,
+      status: "ringing",
+      callType,
+    });
+    activeCalls.set(to, {
+      peerId: socket.user._id,
+      status: "ringing",
+      callType,
+    });
 
     const recipientSockets = onlineUsers.get(to);
 
@@ -811,12 +839,26 @@ io.on("connection", (socket) => {
     console.log("Sending acceptance to:", to);
 
     const c1 = activeCalls.get(socket.user._id);
-    if (c1) { c1.status = "in-call"; c1.callType = callType; }
-    else activeCalls.set(socket.user._id, { peerId: to, status: "in-call", callType });
+    if (c1) {
+      c1.status = "in-call";
+      c1.callType = callType;
+    } else
+      activeCalls.set(socket.user._id, {
+        peerId: to,
+        status: "in-call",
+        callType,
+      });
 
     const c2 = activeCalls.get(to);
-    if (c2) { c2.status = "in-call"; c2.callType = callType; }
-    else activeCalls.set(to, { peerId: socket.user._id, status: "in-call", callType });
+    if (c2) {
+      c2.status = "in-call";
+      c2.callType = callType;
+    } else
+      activeCalls.set(to, {
+        peerId: socket.user._id,
+        status: "in-call",
+        callType,
+      });
 
     const recipientSockets = onlineUsers.get(to);
 

@@ -10,10 +10,12 @@ import CreateRoomModal from "./components/common/CreateRoomModal";
 // Pages
 import Messages from "./pages/Messages";
 import RoomsPage from "./pages/Rooms";
-import SearchPage from "./pages/Search";
+
 
 // Contexts
 import { CallProvider } from "./contexts/CallContext";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -32,7 +34,7 @@ function App() {
     const checkAuth = async () => {
       try {
         const response = await fetch(
-          "http://localhost:5000/api/v1/auth/refresh",
+          `${API_URL}/api/v1/auth/refresh`,
           {
             method: "POST",
             credentials: "include",
@@ -95,7 +97,7 @@ function App() {
 
   const handleLogout = async () => {
     try {
-      await fetch("http://localhost:5000/api/v1/auth/logout", {
+      await fetch(`${API_URL}/api/v1/auth/logout`, {
         method: "POST",
         credentials: "include",
       });
@@ -174,9 +176,9 @@ function App() {
           <RoomsPage onRoomSelect={handleRoomSelect} />
         )}
 
-        {currentTab === "search" && (
-          <SearchPage onRoomSelect={handleRoomSelect} />
-        )}
+
+
+
 
         {isCreateModalOpen && (
           <CreateRoomModal

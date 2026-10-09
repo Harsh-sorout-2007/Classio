@@ -17,12 +17,23 @@ import {
   sendMessage,
   updateMessage,
   updateRoom,
+  getIceServers,
 } from "../controller/room.controller.js";
+import {
+  createRoomValidator,
+  updateRoomValidator,
+} from "../validators/room.validator.js";
+import { validate } from "../validators/validate.js";
 
 const router = Router();
 
+router.route("/ice-servers").get(verifyJWT, getIceServers);
+
 //create get members
-router.route("/").post(verifyJWT, createRoom).get(verifyJWT, getRooms);
+router
+  .route("/")
+  .post(verifyJWT, createRoomValidator, validate, createRoom)
+  .get(verifyJWT, getRooms);
 router.route("/discover").get(verifyJWT, discoverRooms);
 router.route("/:roomId/members").get(verifyJWT, getMembers);
 
@@ -49,7 +60,7 @@ router
 router
   .route("/:roomId")
   .get(verifyJWT, getRoomById)
-  .patch(verifyJWT, updateRoom)
+  .patch(verifyJWT, updateRoomValidator, validate, updateRoom)
   .delete(verifyJWT, deleteRoom);
 
 export default router;

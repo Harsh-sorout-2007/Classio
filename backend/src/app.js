@@ -4,7 +4,15 @@ import userRouter from "./routes/user.routes.js";
 import authRouter from "./routes/auth.routes.js";
 import roomRouter from "./routes/room.routes.js";
 import cookieParser from "cookie-parser";
+import { apiRateLimiter } from "./middleware/rateLimit.middleware.js";
 const app = express();
+
+if (process.env.TRUST_PROXY) {
+  const proxySetting = isNaN(process.env.TRUST_PROXY)
+    ? process.env.TRUST_PROXY
+    : parseInt(process.env.TRUST_PROXY, 10);
+  app.set("trust proxy", proxySetting);
+}
 
 app.use(
   cors({
@@ -16,6 +24,7 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
+app.use("/api", apiRateLimiter);
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/room", roomRouter);

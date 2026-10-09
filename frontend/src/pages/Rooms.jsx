@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 function RoomsPage({ onRoomSelect }) {
   const [rooms, setRooms] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -19,7 +21,7 @@ function RoomsPage({ onRoomSelect }) {
     setIsLoading(true);
     try {
       const response = await fetch(
-        "http://localhost:5000/api/v1/room/discover",
+        `${API_URL}/api/v1/room/discover`,
         {
           method: "GET",
           credentials: "include",
@@ -43,7 +45,7 @@ function RoomsPage({ onRoomSelect }) {
   const joinRoom = async (room) => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/v1/room/${room.id}/join`,
+        `${API_URL}/api/v1/room/${room.id}/join`,
         {
           method: "POST",
           credentials: "include",

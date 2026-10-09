@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import logo from "../assets/logo/classio-logo.png";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 function RoomList({ onRoomSelect, onLogout, currentUser }) {
   const [rooms, setRooms] = useState([]);
   const [discoveredRooms, setDiscoveredRooms] = useState([]);
@@ -26,7 +28,7 @@ function RoomList({ onRoomSelect, onLogout, currentUser }) {
   const getRooms = async () => {
     setIsLoadingRooms(true);
     try {
-      const response = await fetch("http://localhost:5000/api/v1/room/", {
+      const response = await fetch(`${API_URL}/api/v1/room/`, {
         method: "GET",
         credentials: "include",
       });
@@ -45,7 +47,7 @@ function RoomList({ onRoomSelect, onLogout, currentUser }) {
     setIsLoadingDiscover(true);
     try {
       const response = await fetch(
-        "http://localhost:5000/api/v1/room/discover",
+        `${API_URL}/api/v1/room/discover`,
         {
           method: "GET",
           credentials: "include",
@@ -71,7 +73,7 @@ function RoomList({ onRoomSelect, onLogout, currentUser }) {
     if (!roomName.trim()) return;
 
     try {
-      const response = await fetch("http://localhost:5000/api/v1/room/", {
+      const response = await fetch(`${API_URL}/api/v1/room/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -100,7 +102,7 @@ function RoomList({ onRoomSelect, onLogout, currentUser }) {
   const joinRoom = async (room) => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/v1/room/${room.id}/join`,
+        `${API_URL}/api/v1/room/${room.id}/join`,
         {
           method: "POST",
           credentials: "include",

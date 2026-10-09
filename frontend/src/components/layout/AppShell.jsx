@@ -30,12 +30,6 @@ function AppShell({
           >
             Rooms
           </button>
-          <button
-            className={`navbar-link ${currentTab === "search" ? "active" : ""}`}
-            onClick={() => onTabChange("search")}
-          >
-            Search
-          </button>
         </div>
 
         <div className="navbar-actions">
