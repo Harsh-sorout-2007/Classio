@@ -971,6 +971,10 @@ const deleteMessage = asyncHandler(async (req, res) => {
 const getIceServers = asyncHandler(async (req, res) => {
   const iceServers = [{ urls: "stun:stun.l.google.com:19302" }];
 
+  // TODO(Deployment): If using a TURN provider like Twilio or Metered that supports 
+  // time-limited credentials (e.g., via REST API token generation), implement the token 
+  // generation logic here instead of sending static credentials. 
+  // Static credentials can be abused if extracted by an authenticated client.
   if (process.env.TURN_URL) {
     iceServers.push({
       urls: process.env.TURN_URL,

@@ -201,8 +201,10 @@ export const CallProvider = ({ children }) => {
       setCallType(type);
       callTypeRef.current = type;
       setIsVideoOff(type === "audio");
+      return true;
     } catch (err) {
       console.error("Failed to start media", err);
+      return false;
     }
   };
 
@@ -667,7 +669,15 @@ export const CallProvider = ({ children }) => {
     remoteUserId.current = memberId;
     setRemoteUser({ username: memberUsername });
     setCallState("calling");
-    await startMedia(type);
+    const mediaSuccess = await startMedia(type);
+    if (!mediaSuccess) {
+      setCallState("idle");
+      remoteUserId.current = null;
+      currentCallUser.current = null;
+      setRemoteUser(null);
+      alert("Could not access camera or microphone. Call cancelled.");
+      return;
+    }
     socket.emit("call-user", { to: memberId, callType: type });
   };
 
@@ -699,14 +709,28 @@ export const CallProvider = ({ children }) => {
         endCall={endCall}
         acceptCall={async () => {
           if (incomingCall) {
-            remoteUserId.current = incomingCall.from;
+            const callerId = incomingCall.from;
+            const callType = incomingCall.callType;
+            const callerUsername = incomingCall.username;
+            remoteUserId.current = callerId;
             setCallState("calling");
-            await startMedia(incomingCall.callType);
+            const mediaSuccess = await startMedia(callType);
+            
+            if (!mediaSuccess) {
+              socket.emit("reject-call", { to: callerId });
+              setIncomingCall(null);
+              setCallState("idle");
+              remoteUserId.current = null;
+              currentCallUser.current = null;
+              alert("Could not access camera or microphone. Call rejected.");
+              return;
+            }
+            
             socket.emit("accept-call", {
-              to: incomingCall.from,
-              callType: incomingCall.callType,
+              to: callerId,
+              callType: callType,
             });
-            setRemoteUser({ username: incomingCall.username });
+            setRemoteUser({ username: callerUsername });
             setIncomingCall(null);
           }
         }}

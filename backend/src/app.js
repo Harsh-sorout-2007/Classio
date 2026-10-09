@@ -14,9 +14,11 @@ if (process.env.TRUST_PROXY) {
   app.set("trust proxy", proxySetting);
 }
 
+const allowedOrigin = process.env.NODE_ENV === "production" ? process.env.CLIENT_URL : "http://localhost:5173";
+
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: allowedOrigin,
     credentials: true,
   }),
 );

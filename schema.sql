@@ -31,6 +31,7 @@ CREATE TABLE room_members (
   room_id UUID REFERENCES rooms(id) ON DELETE CASCADE,
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   role VARCHAR(20) DEFAULT 'member',
+  joined_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (room_id, user_id)
 );
 
